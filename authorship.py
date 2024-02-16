@@ -9,13 +9,10 @@ DISPLAY_RESOLUTION = dict(
     height = 2000
 )
 WINDOW_EXTENT = 0.7
-WINDOW_SIZE = (
-    WINDOW_EXTENT * DISPLAY_RESOLUTION["width"] / DISPLAY_SCALING, 
-    WINDOW_EXTENT * DISPLAY_RESOLUTION["height"] / DISPLAY_SCALING
-)
 FONT_FAMILY = "Consolas"
-TEXT_WRAP_WIDTH = 0.6
-print(f"[DISPLAY] {WINDOW_SIZE[0]:.0f} x {WINDOW_SIZE[1]:.0f} px")
+TEXT_WRAP_CHAR_COLUMNS = 42
+
+# color specification
 class COLORS:
     background = "#050505" # deep black
     waiting_screen = "#B1B1B1" # clean grey
@@ -45,36 +42,41 @@ class Experiment:
         self.show_credits()
 
     def setup_window(self):
+        self.window_size = (
+            WINDOW_EXTENT * DISPLAY_RESOLUTION["width"] / DISPLAY_SCALING, 
+            WINDOW_EXTENT * DISPLAY_RESOLUTION["height"] / DISPLAY_SCALING
+        )
         self.window = visual.Window(
             title = "EEG Experiment",
             color = COLORS.background, 
             fullscr = USE_FULLSCREEN_MODE, 
             monitor = monitors.Monitor("displayMonitor", width=30, distance=60),
             units = "pix",
-            size = WINDOW_SIZE,
+            size = self.window_size,
         )
+        print(f"[DISPLAY] {self.window_size[0]:.0f} x {self.window_size[1]:.0f} px")
 
-        self.background = visual.rect.Rect(self.window, size=WINDOW_SIZE)
+        self.background = visual.rect.Rect(self.window, size=self.window_size)
         self.background.draw()
         self.set_background_color(COLORS.background)
 
-        self.instructions = visual.TextStim(self.window, "", font = FONT_FAMILY, height = 28, wrapWidth = 0.9 * WINDOW_SIZE[0])
+        self.instructions = visual.TextStim(self.window, "", font = FONT_FAMILY, height = 28, wrapWidth = 0.9 * self.window_size[0])
         text_stim_settings = dict(
             font = FONT_FAMILY, 
             pos = (0, 0),
-            size = (0.67 * 2, 0.6 * 2),
-            letterHeight = 0.1, 
+            size = (0.7 * 2, 0.7 * 2),
+            letterHeight = 0.08, 
             units = "norm",
             alignment = "top left",
         )
-        self.stimulus = visual.TextBox2(self.window, "", contrast = 0, **text_stim_settings)
+        self.stimulus = visual.TextBox2(self.window, "", contrast = 0, **text_stim_settings, borderWidth = 1, borderColor = "#FFFFFF")
         self.stimulus_completed = visual.TextBox2(self.window, "", **text_stim_settings)
 
         self.window.flip()
 
     def landing_page(self):
         self.set_background_color(COLORS.background)
-        visual.TextStim(self.window, "EEG Typing Experiment", font = FONT_FAMILY, height = 52, wrapWidth = WINDOW_SIZE[0]).draw()
+        visual.TextStim(self.window, "EEG Typing Experiment", font = FONT_FAMILY, height = 52, wrapWidth = self.window_size[0]).draw()
         self.window.flip()
         core.wait(1)
 
@@ -102,9 +104,9 @@ class Experiment:
         self.instructions.draw()
 
     def set_stimulus_text(self, text, completed = 0):
-        self.stimulus.text = "\n".join(textwrap.wrap(text, 28, replace_whitespace = False))
+        self.stimulus.text = "\n".join(textwrap.wrap(text, TEXT_WRAP_CHAR_COLUMNS, replace_whitespace = False))
         self.stimulus.draw()
-        self.stimulus_completed.text = " \n".join(":".join(textwrap.wrap(text[:text.find(" ", completed + 1)], 28, replace_whitespace = False))[:completed].split(":"))
+        self.stimulus_completed.text = " \n".join(":".join(textwrap.wrap(text[:text.find(" ", completed + 1)], TEXT_WRAP_CHAR_COLUMNS, replace_whitespace = False))[:completed].split(":"))
         self.stimulus_completed.draw()
 
     def present_trial(self, trial, text):
