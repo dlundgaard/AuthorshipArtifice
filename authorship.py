@@ -1,5 +1,5 @@
 from psychopy import core, event, visual, monitors
-import random, datetime, pathlib
+import random, datetime, pathlib, textwrap
 
 # display properties
 USE_FULLSCREEN_MODE = False
@@ -14,8 +14,8 @@ WINDOW_SIZE = (
     WINDOW_EXTENT * DISPLAY_RESOLUTION["height"] / DISPLAY_SCALING
 )
 FONT_FAMILY = "Consolas"
-WRAP_LINEWIDTH = 4000
-print(f"[DISPLAY] Running with {WINDOW_SIZE[0]:.0f}x{WINDOW_SIZE[1]:.0f}px")
+TEXT_WRAP_WIDTH = 0.6
+print(f"[DISPLAY] {WINDOW_SIZE[0]:.0f} x {WINDOW_SIZE[1]:.0f} px")
 class COLORS:
     background = "#050505" # deep black
     waiting_screen = "#B1B1B1" # clean grey
@@ -58,25 +58,23 @@ class Experiment:
         self.background.draw()
         self.set_background_color(COLORS.background)
 
-        self.instructions = visual.TextStim(self.window, "", font = FONT_FAMILY, height = 36, wrapWidth = 950)
-        text_stim_settings = dict(font = FONT_FAMILY, height = 42, anchorHoriz = "left", alignText = "left", wrapWidth = WRAP_LINEWIDTH)
-        self.stimulus = visual.TextStim(
-            self.window, 
-            "", 
-            opacity = 0.6,
-            **text_stim_settings
+        self.instructions = visual.TextStim(self.window, "", font = FONT_FAMILY, height = 28, wrapWidth = 0.9 * WINDOW_SIZE[0])
+        text_stim_settings = dict(
+            font = FONT_FAMILY, 
+            pos = (0, 0),
+            size = (0.67 * 2, 0.6 * 2),
+            letterHeight = 0.1, 
+            units = "norm",
+            alignment = "top left",
         )
-        self.stimulus_completed = visual.TextStim(
-            self.window, 
-            "", 
-            **text_stim_settings
-        )
+        self.stimulus = visual.TextBox2(self.window, "", contrast = 0, **text_stim_settings)
+        self.stimulus_completed = visual.TextBox2(self.window, "", **text_stim_settings)
 
         self.window.flip()
 
     def landing_page(self):
         self.set_background_color(COLORS.background)
-        visual.TextStim(self.window, "EEG Typing Experiment", font = FONT_FAMILY, height = 48, wrapWidth = WRAP_LINEWIDTH).draw()
+        visual.TextStim(self.window, "EEG Typing Experiment", font = FONT_FAMILY, height = 52, wrapWidth = WINDOW_SIZE[0]).draw()
         self.window.flip()
         core.wait(1)
 
@@ -104,42 +102,40 @@ class Experiment:
         self.instructions.draw()
 
     def set_stimulus_text(self, text, completed = 0):
-        self.stimulus.text = text
+        self.stimulus.text = "\n".join(textwrap.wrap(text, 28, replace_whitespace = False))
         self.stimulus.draw()
-        self.stimulus_completed.text = text[:completed].ljust(len(text))
+        self.stimulus_completed.text = " \n".join(":".join(textwrap.wrap(text[:text.find(" ", completed + 1)], 28, replace_whitespace = False))[:completed].split(":"))
         self.stimulus_completed.draw()
 
-    def present_trial(self, trial, word, queue):
+    def present_trial(self, trial, text):
         cursor_position = 0
-        while cursor_position < len(word):
-            self.set_stimulus_text(word + " " + " ".join(queue), cursor_position)
+        while cursor_position < len(text):
+            self.set_stimulus_text(text, cursor_position)
             self.window.flip()
             self.stopwatch.reset()
             pressed_key = event.waitKeys()[0]
             response_time = self.stopwatch.getTime()
-            print(f"[KEYPRESS] {pressed_key.ljust(8)} {response_time:.2f}s")
+            print(f"[KEYPRESS] {pressed_key.ljust(8)} {1000 * response_time:4.0f}ms")
+            pressed_key = " " if pressed_key == "space" else pressed_key
             self.log_result(datum = dict(
                 timestamp = datetime.datetime.now(),
-                trial = trial, 
+                trial = trial,
                 response_time = response_time,
-                word = word,
                 cursor_position = cursor_position,
-                target_response = word[cursor_position],
+                target_response = text[cursor_position],
                 response = pressed_key,
                 # feedback = None,
             ))
-            if pressed_key == word[cursor_position]:
+            if pressed_key == text[cursor_position]:
                 cursor_position += 1
             elif pressed_key == "quit":
                 core.quit()
 
     def run_blocks(self):
-        targets = self.rand.sample(WORDBANK, TRIALS)
-        for trial, word in enumerate(targets, start=1):
+        for trial in range(TRIALS):
             self.present_trial(
                 trial = trial,
-                word = word,
-                queue = targets[trial:]
+                text = " ".join(self.rand.sample(WORDBANK, TRIALS)),
             )
 
     def show_credits(self):
@@ -149,7 +145,7 @@ class Experiment:
         core.wait(2)
 
     def setup_logfile(self):
-        self.LOGFILE_COLUMNS = ["timestamp", "trial", "response_time", "word", "cursor_position","target_response", "response"]
+        self.LOGFILE_COLUMNS = ["timestamp", "trial", "response_time", "cursor_position", "target_response", "response"]
         if not LOGFILE_PATH.is_file():
             with open(LOGFILE_PATH, "w") as file:
                 file.write(",".join(self.LOGFILE_COLUMNS))
