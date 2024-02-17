@@ -1,7 +1,6 @@
 from psychopy import core, event, visual, monitors
 import os, random, datetime, pathlib, textwrap, itertools
-
-os.chdir(pathlib.Path(__file__).resolve().parent)
+from texts import stories
 
 # display properties
 USE_FULLSCREEN_MODE = False
@@ -11,6 +10,7 @@ DISPLAY_RESOLUTION = dict(
     height = 2000
 )
 WINDOW_EXTENT = 0.7
+MAX_PARAGRAPH_LENGTH = 250
 TEXT_WRAP_CHAR_COLUMNS = 38
 FONT_FAMILY = "Consolas"
 
@@ -23,15 +23,14 @@ class COLORS:
     negative_feedback = "#FF0000" # YouTube red
 
 # experimental parameters
-TRIALS = 3 # amount of trials within each block
+ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+ADMISSIBLE_KEYS = list(ALPHABET.lower()) + ["space", "quit"]
 FALSE_ERROR_RATE = 0.005 # rate of inserting errors despite participant being correct
-# RECTIFY_ERROR_RATE = 0.2 # rate of rectifying errors despite participant typing the wrong key
+RECTIFY_ERROR_RATE = 0.05 # rate of rectifying errors despite participant typing the wrong key
 
-# locating resources
-with open("countries.txt", "r") as file:
-    WORDBANK = file.read().splitlines()
+# setting paths
 LOGFILE_PATH = pathlib.Path(__file__).parent.absolute().joinpath("results.csv")
-ADMISSIBLE_KEYS = list("abcdefghijklmnopqrstuvwxyz") + ["space", "quit"]
+os.chdir(pathlib.Path(__file__).resolve().parent)
 
 ### TODO
 # capital letters?
@@ -81,7 +80,8 @@ class Experiment:
             font = FONT_FAMILY, 
             pos = (0, 0),
             size = (0.65 * 2, 0.4 * 2),
-            letterHeight = 0.08, 
+            letterHeight = 0.08,
+            lineSpacing = 1.2,
             units = "norm",
             alignment = "top left",
         )
@@ -150,16 +150,19 @@ class Experiment:
             response_time = self.stopwatch.getTime()
             print(f"[KEYPRESS] {pressed_key.ljust(8)} {1000 * response_time:4.0f}ms", pressed_key)
             target_response = "space" if text[cursor_position] == " " else text[cursor_position]
-            if pressed_key == target_response:
-                if self.rand.random() < FALSE_ERROR_RATE: # sham subject by falsely reporting that wrong key was pressed
+            if pressed_key == "quit":
+                core.quit()
+            elif pressed_key == target_response:
+                if self.rand.random() < FALSE_ERROR_RATE: # sometimes sham subject by falsely reporting that wrong key was pressed
                     negative_feedback = True
                 else: # accept correct keypress and advance cursor
                     negative_feedback = False
                     cursor_position += 1
-            elif pressed_key == "quit":
-                core.quit()
-            else: # fairly provide negative feedback by indicating a wrong keypress 
-                negative_feedback = True
+            else:  
+                if self.rand.random() < RECTIFY_ERROR_RATE: # sometimes provide positive feedback despite incorrect keypress
+                    negative_feedback = False
+                else: # fairly provide negative feedback by indicating a wrong keypress
+                    negative_feedback = True
             self.provide_feedback(negative = negative_feedback)
 
             self.log_result(datum = dict(
@@ -173,10 +176,14 @@ class Experiment:
             ))
 
     def run_blocks(self):
-        for trial in range(TRIALS):
+        selected_story = self.rand.choice(stories)
+        cleaned_story = "".join([char for char in selected_story.lower() if char in list(ALPHABET.lower()) + [" "]])
+        split_story = textwrap.wrap(cleaned_story, MAX_PARAGRAPH_LENGTH)
+        print(len(split_story))
+        for trial, paragraph in enumerate(split_story, start = 1):
             self.present_trial(
                 trial = trial,
-                text = " ".join(self.rand.sample(WORDBANK, 15)),
+                text = paragraph,
             )
 
     def show_credits(self):
