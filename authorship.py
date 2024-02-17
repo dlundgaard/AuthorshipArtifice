@@ -9,7 +9,7 @@ DISPLAY_RESOLUTION = dict(
     height = 2000
 )
 WINDOW_EXTENT = 0.7
-TEXT_WRAP_CHAR_COLUMNS = 42
+TEXT_WRAP_CHAR_COLUMNS = 38
 FONT_FAMILY = "Consolas"
 
 # color specification
@@ -17,6 +17,8 @@ UNTYPED_CHAR_CONTRAST = 0
 class COLORS:
     background = "#050505" # deep black
     waiting_screen = "#B1B1B1" # clean grey
+    positive_feedback = "#1ED760" # Spotify green
+    negative_feedback = "#FF0000" # YouTube red
 
 # experimental parameters
 TRIALS = 2 # amount of trials within each block
@@ -46,7 +48,7 @@ class Experiment:
         self.setup_logfile()
 
         # scenes
-        self.landing_page()
+        # self.landing_page()
         self.get_ready()
         self.run_blocks()
         self.show_credits()
@@ -74,13 +76,15 @@ class Experiment:
         text_stim_settings = dict(
             font = FONT_FAMILY, 
             pos = (0, 0),
-            size = (0.7 * 2, 0.7 * 2),
+            size = (0.65 * 2, 0.4 * 2),
             letterHeight = 0.08, 
             units = "norm",
             alignment = "top left",
         )
         self.stimulus = visual.TextBox2(self.window, "", contrast = UNTYPED_CHAR_CONTRAST, borderWidth = 1, borderColor = "#FFFFFF", **text_stim_settings)
         self.stimulus_completed = visual.TextBox2(self.window, "", **text_stim_settings)
+
+        self.feedback_indicator = visual.rect.Rect(self.window, pos = (0, -0.5), size=(0.65 * 2, 0.05 * 2), units = "norm", fillColor = COLORS.positive_feedback)
 
         self.window.flip()
 
@@ -121,10 +125,17 @@ class Experiment:
         completed_paragraph = ":".join(completed_paragraph)[:completed + amount_newlines_inserted_before_cursor].split(":")
 
         self.stimulus.text = "\n".join(whole_paragraph).replace(" ", "_")
-        self.stimulus_completed.text = "\n".join(completed_paragraph).replace(" ", "_")
-
         self.stimulus.draw()
+        self.stimulus_completed.text = "\n".join(completed_paragraph).replace(" ", "_")
         self.stimulus_completed.draw()
+
+
+    def show_feedback(self, negative = False):
+        if negative:
+            self.feedback_indicator.setFillColor(COLORS.negative_feedback)
+        else:
+            self.feedback_indicator.setFillColor(COLORS.background)
+        self.feedback_indicator.draw()
 
     def present_trial(self, trial, text):
         cursor_position = 0
@@ -147,8 +158,11 @@ class Experiment:
             pressed_key = " " if pressed_key == "space" else pressed_key
             if pressed_key == text[cursor_position]:
                 cursor_position += 1
+                self.show_feedback(negative = False)
             elif pressed_key == "quit":
                 core.quit()
+            else:
+                self.show_feedback(negative = True)
 
     def run_blocks(self):
         for trial in range(TRIALS):
