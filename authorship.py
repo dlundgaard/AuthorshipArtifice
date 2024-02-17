@@ -1,5 +1,5 @@
 from psychopy import core, event, visual, monitors
-import random, datetime, pathlib, textwrap
+import random, datetime, pathlib, textwrap, itertools
 
 # display properties
 USE_FULLSCREEN_MODE = False
@@ -9,23 +9,33 @@ DISPLAY_RESOLUTION = dict(
     height = 2000
 )
 WINDOW_EXTENT = 0.7
-FONT_FAMILY = "Consolas"
 TEXT_WRAP_CHAR_COLUMNS = 42
+FONT_FAMILY = "Consolas"
 
 # color specification
+UNTYPED_CHAR_CONTRAST = 0
 class COLORS:
     background = "#050505" # deep black
     waiting_screen = "#B1B1B1" # clean grey
 
 # experimental parameters
-TRIALS = 20 # amount of trials within each block
-FALSELY_ALLEGE_ERROR_RATE = 0.05
-RECTIFY_ERROR_RATE = 0.2
+TRIALS = 2 # amount of trials within each block
+FALSELY_ALLEGE_ERROR_RATE = 0.05 # rate of inserting errors despite participant being correct
+RECTIFY_ERROR_RATE = 0.2 # rate of rectifying errors despite participant typing the wrong key
 
 # locating resources
 with open("countries.txt", "r") as file:
     WORDBANK = file.read().splitlines()
 LOGFILE_PATH = pathlib.Path(__file__).parent.absolute().joinpath("results.csv")
+
+### TODO
+# capital letters?
+# amount trials, length of trials
+# feedback delivery
+# smoothen out typing experience
+# should interventions be exclusively either 1) inserted errors or 2) corrected errors 
+# should tasks be stenographic? i.e. press a combination of keys simulataneously
+# adapt to use metric units for display sizing
 
 class Experiment:
     def __init__(self):
@@ -69,7 +79,7 @@ class Experiment:
             units = "norm",
             alignment = "top left",
         )
-        self.stimulus = visual.TextBox2(self.window, "", contrast = 0, **text_stim_settings, borderWidth = 1, borderColor = "#FFFFFF")
+        self.stimulus = visual.TextBox2(self.window, "", contrast = UNTYPED_CHAR_CONTRAST, borderWidth = 1, borderColor = "#FFFFFF", **text_stim_settings)
         self.stimulus_completed = visual.TextBox2(self.window, "", **text_stim_settings)
 
         self.window.flip()
@@ -103,10 +113,17 @@ class Experiment:
         self.instructions.text = text
         self.instructions.draw()
 
-    def set_stimulus_text(self, text, completed = 0):
-        self.stimulus.text = "\n".join(textwrap.wrap(text, TEXT_WRAP_CHAR_COLUMNS, replace_whitespace = False))
+    def set_stimulus_text(self, text, completed):
+        whole_paragraph = textwrap.wrap(text, TEXT_WRAP_CHAR_COLUMNS, drop_whitespace = False)
+        completed_paragraph = textwrap.wrap(text, TEXT_WRAP_CHAR_COLUMNS, drop_whitespace = False)
+        end_lines_cursor_positions = itertools.accumulate(completed_paragraph, lambda acc, line: acc + len(line), initial = 0)
+        amount_newlines_inserted_before_cursor = sum([1 for val in end_lines_cursor_positions if val < completed and val > 0])
+        completed_paragraph = ":".join(completed_paragraph)[:completed + amount_newlines_inserted_before_cursor].split(":")
+
+        self.stimulus.text = "\n".join(whole_paragraph).replace(" ", "_")
+        self.stimulus_completed.text = "\n".join(completed_paragraph).replace(" ", "_")
+
         self.stimulus.draw()
-        self.stimulus_completed.text = " \n".join(":".join(textwrap.wrap(text[:text.find(" ", completed + 1)], TEXT_WRAP_CHAR_COLUMNS, replace_whitespace = False))[:completed].split(":"))
         self.stimulus_completed.draw()
 
     def present_trial(self, trial, text):
@@ -118,16 +135,16 @@ class Experiment:
             pressed_key = event.waitKeys()[0]
             response_time = self.stopwatch.getTime()
             print(f"[KEYPRESS] {pressed_key.ljust(8)} {1000 * response_time:4.0f}ms")
-            pressed_key = " " if pressed_key == "space" else pressed_key
             self.log_result(datum = dict(
                 timestamp = datetime.datetime.now(),
                 trial = trial,
                 response_time = response_time,
                 cursor_position = cursor_position,
-                target_response = text[cursor_position],
+                target_response = "space" if text[cursor_position] == " " else text[cursor_position],
                 response = pressed_key,
-                # feedback = None,
+                # feedback_given = None,
             ))
+            pressed_key = " " if pressed_key == "space" else pressed_key
             if pressed_key == text[cursor_position]:
                 cursor_position += 1
             elif pressed_key == "quit":
@@ -137,7 +154,7 @@ class Experiment:
         for trial in range(TRIALS):
             self.present_trial(
                 trial = trial,
-                text = " ".join(self.rand.sample(WORDBANK, TRIALS)),
+                text = " ".join(self.rand.sample(WORDBANK, 30)),
             )
 
     def show_credits(self):
