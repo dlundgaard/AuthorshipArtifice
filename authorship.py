@@ -51,6 +51,7 @@ os.chdir(pathlib.Path(__file__).resolve().parent)
 # adapt to use metric units for display sizing
 # request EEG equipment monitor resolution, dimensions
 # is this setup considered an oddball paradigm?
+# terminology (session/blocks/trials)
 
 class Experiment:
     def __init__(self):
@@ -149,10 +150,10 @@ class Experiment:
             self.feedback_indicator.setFillColor(COLORS.background)
         self.feedback_indicator.draw()
 
-    def present_trial(self, trial, text):
+    def run_trials(self, block, paragraph):
         cursor_position = 0
-        while cursor_position < len(text):
-            self.set_stimulus_text(text, cursor_position)
+        while cursor_position < len(paragraph):
+            self.set_stimulus_text(paragraph, cursor_position)
             self.window.flip()
             self.stopwatch.reset()
 
@@ -162,7 +163,7 @@ class Experiment:
             print(f"[KEYPRESS] {pressed_key.ljust(8)} {1000 * response_time:4.0f}ms", pressed_key)
 
             # decide on feedback
-            target_response = "space" if text[cursor_position] == " " else text[cursor_position]
+            target_response = "space" if paragraph[cursor_position] == " " else paragraph[cursor_position]
             if pressed_key == "quit":
                 core.quit()
             elif pressed_key == target_response:
@@ -180,9 +181,10 @@ class Experiment:
             # log datapoint
             self.log_result(datum = dict(
                 session = self.session,
-                trial = trial,
+                story = self.selected_story,
+                block = block,
+                trial = cursor_position,
                 timestamp = datetime.datetime.now(),
-                cursor_position = cursor_position,
                 response_time = response_time,
                 target_response = target_response,
                 response = pressed_key,
@@ -194,14 +196,13 @@ class Experiment:
                 cursor_position += 1
 
     def run_blocks(self):
-        selected_story = self.rand.choice(stories)
-        cleaned_story = "".join([char for char in selected_story.lower() if char in list(ALPHABET.lower()) + [" "]])
-        split_story = textwrap.wrap(cleaned_story, MAX_PARAGRAPH_LENGTH)
-        print(len(split_story))
-        for trial, paragraph in enumerate(split_story, start = 1):
-            self.present_trial(
-                trial = trial,
-                text = paragraph,
+        self.selected_story = self.rand.choice(range(len(stories)))
+        self.text = self.clean_story(stories[self.selected_story])
+        partitioned_story = textwrap.wrap(self.text, MAX_PARAGRAPH_LENGTH)
+        for block, paragraph in enumerate(partitioned_story, start = 1):
+            self.run_trials(
+                block = block,
+                paragraph = paragraph,
             )
 
     def show_credits(self):
@@ -209,9 +210,12 @@ class Experiment:
         self.set_instruction_text("This concludes the experiment.")
         self.window.flip()
         core.wait(2)
+    
+    def clean_story(self, story):
+        return "".join([char for char in story.lower() if char in list(ALPHABET.lower()) + [" "]])
 
     def setup_logfile(self):
-        self.LOGFILE_COLUMNS = ["session", "trial", "timestamp", "cursor_position", "response_time", "target_response", "response", "feedback"]
+        self.LOGFILE_COLUMNS = ["session", "story", "block", "trial", "timestamp", "response_time", "target_response", "response", "feedback"]
         if not LOGFILE_PATH.is_file():
             with open(LOGFILE_PATH, "w") as file:
                 file.write(",".join(self.LOGFILE_COLUMNS))
@@ -226,6 +230,7 @@ class Experiment:
                     self.session = 1
 
     def log_result(self, datum):
+        assert list(datum.keys()) == self.LOGFILE_COLUMNS
         with open(LOGFILE_PATH, "a") as file:
             file.write("\n" + ",".join(map(str, datum.values())))
 
