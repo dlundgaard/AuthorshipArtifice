@@ -10,6 +10,18 @@ import pathlib
 import textwrap
 import itertools
 from texts import stories
+# from triggers import setParallelData
+
+# EEG encodings
+class EEG_ENCODING:
+    trial               = 0
+    keypress            = 0
+    feedback_negative   = 0
+    feedback_positive   = 0
+    error_rectified     = 0
+    error_inserted      = 0
+
+# self.window.callOnFlip(setParallelData, 1) 
 
 # display properties
 USE_FULLSCREEN_MODE = False
@@ -52,6 +64,7 @@ os.chdir(pathlib.Path(__file__).resolve().parent)
 # request EEG equipment monitor resolution, dimensions
 # is this setup considered an oddball paradigm?
 # terminology (session/blocks/trials)
+# accumulate data points, write collectively post-experiment to optimize performance/timing
 
 class Experiment:
     def __init__(self):
@@ -132,7 +145,7 @@ class Experiment:
         self.instructions.draw()
 
 
-    def set_stimulus_text(self, text, completed):
+    def update_stimulus(self, text, completed):
         wrapped_paragraph = textwrap.wrap(text, TEXT_WRAP_CHAR_COLUMNS, drop_whitespace = False)
         end_lines_cursor_positions = itertools.accumulate(wrapped_paragraph, lambda acc, line: acc + len(line), initial = 0)
         newlines_before_cursor = sum([1 for val in end_lines_cursor_positions if val < completed and val > 0])
@@ -142,6 +155,7 @@ class Experiment:
         self.stimulus.draw()
         self.stimulus_completed.text = "\n".join(completed_paragraph).replace(" ", "_")
         self.stimulus_completed.draw()
+        self.window.flip()
 
     def provide_feedback(self, negative):
         if negative:
@@ -149,12 +163,12 @@ class Experiment:
         else:
             self.feedback_indicator.setFillColor(COLORS.background)
         self.feedback_indicator.draw()
+        self.window.flip()
 
     def run_trials(self, block, paragraph):
         cursor_position = 0
         while cursor_position < len(paragraph):
-            self.set_stimulus_text(paragraph, cursor_position)
-            self.window.flip()
+            self.update_stimulus(paragraph, cursor_position)
             self.stopwatch.reset()
 
             # take keyboard input
