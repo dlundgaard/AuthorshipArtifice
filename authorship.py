@@ -1,5 +1,14 @@
+"""
+Adaption of "Cognitive Illusions of Authorship Reveal Hierarchical Error Detection in Skilled Typists" (https://doi.org/10.1126/science.1190483) to experimental setup which incorporates EEG. 
+"""
+
 from psychopy import core, event, visual, monitors
-import os, random, datetime, pathlib, textwrap, itertools
+import os
+import random
+import datetime
+import pathlib
+import textwrap
+import itertools
 from texts import stories
 
 # display properties
@@ -41,14 +50,15 @@ os.chdir(pathlib.Path(__file__).resolve().parent)
 # should tasks be stenographic? i.e. press a combination of keys simulataneously
 # adapt to use metric units for display sizing
 # request EEG equipment monitor resolution, dimensions
+# is this setup considered an oddball paradigm?
 
 class Experiment:
     def __init__(self):
         # setup
+        self.setup_logfile()
         self.rand = random.Random()
         self.stopwatch = core.Clock()
         self.setup_window()
-        self.setup_logfile()
 
         # scenes
         self.landing_page()
@@ -62,7 +72,6 @@ class Experiment:
             WINDOW_EXTENT * DISPLAY_RESOLUTION["height"] / DISPLAY_SCALING
         )
         self.window = visual.Window(
-            title = "EEG Experiment",
             color = COLORS.background, 
             fullscr = USE_FULLSCREEN_MODE, 
             monitor = monitors.Monitor("displayMonitor", width=30, distance=60),
@@ -98,7 +107,7 @@ class Experiment:
         self.window.flip()
         core.wait(1)
 
-        self.set_instruction_text("For each trial, type out the word displayed as quickly as possible.\n\nFollowing each keypress, you will get feedback indicating whether you hit the right key.\n\n\nPress SPACE to proceed")
+        self.set_instruction_text("For each trial, type out the paragraph of text displayed as quickly as possible. Underscores (_) denote spaces.\n\nFollowing each keypress, you will get feedback indicating whether you hit the right key.\n\n\nPress SPACE to proceed")
         self.window.flip()
         pressed_key = event.waitKeys(keyList = ["space", "quit"]) # await for user to actively proceed to trials
         if pressed_key == "quit":
@@ -166,8 +175,9 @@ class Experiment:
             self.provide_feedback(negative = negative_feedback)
 
             self.log_result(datum = dict(
-                timestamp = datetime.datetime.now(),
+                session = self.session,
                 trial = trial,
+                timestamp = datetime.datetime.now(),
                 cursor_position = cursor_position - 1,
                 response_time = response_time,
                 target_response = target_response,
@@ -193,10 +203,19 @@ class Experiment:
         core.wait(2)
 
     def setup_logfile(self):
-        self.LOGFILE_COLUMNS = ["timestamp", "trial", "cursor_position", "response_time", "target_response", "response", "feedback"]
+        self.LOGFILE_COLUMNS = ["session", "trial", "timestamp", "cursor_position", "response_time", "target_response", "response", "feedback"]
         if not LOGFILE_PATH.is_file():
             with open(LOGFILE_PATH, "w") as file:
                 file.write(",".join(self.LOGFILE_COLUMNS))
+            self.session = 1
+        else:
+            with open(LOGFILE_PATH, "r") as file:
+                lines = file.readlines()
+                if len(lines) > 1:
+                    last_datapoint = lines[-1]
+                    self.session = int(last_datapoint.split(",")[0]) + 1
+                else:
+                    self.session = 1
 
     def log_result(self, datum):
         with open(LOGFILE_PATH, "a") as file:
