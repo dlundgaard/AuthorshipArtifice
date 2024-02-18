@@ -155,18 +155,21 @@ class Experiment:
             self.set_stimulus_text(text, cursor_position)
             self.window.flip()
             self.stopwatch.reset()
+
+            # take keyboard input
             pressed_key = event.waitKeys(keyList = ADMISSIBLE_KEYS)[0]
             response_time = self.stopwatch.getTime()
             print(f"[KEYPRESS] {pressed_key.ljust(8)} {1000 * response_time:4.0f}ms", pressed_key)
+
+            # decide on feedback
             target_response = "space" if text[cursor_position] == " " else text[cursor_position]
             if pressed_key == "quit":
                 core.quit()
             elif pressed_key == target_response:
                 if self.rand.random() < FALSE_ERROR_RATE: # sometimes sham subject by falsely reporting that wrong key was pressed
                     negative_feedback = True
-                else: # accept correct keypress and advance cursor
+                else: # provide positive feedback for correct keypress
                     negative_feedback = False
-                    cursor_position += 1
             else:  
                 if self.rand.random() < RECTIFY_ERROR_RATE: # sometimes provide positive feedback despite incorrect keypress
                     negative_feedback = False
@@ -174,16 +177,21 @@ class Experiment:
                     negative_feedback = True
             self.provide_feedback(negative = negative_feedback)
 
+            # log datapoint
             self.log_result(datum = dict(
                 session = self.session,
                 trial = trial,
                 timestamp = datetime.datetime.now(),
-                cursor_position = cursor_position - 1,
+                cursor_position = cursor_position,
                 response_time = response_time,
                 target_response = target_response,
                 response = pressed_key,
                 feedback = "negative" if negative_feedback else "positive",
             ))
+
+            # if correct key was pressed, and this was not a sham feedback instance, advance cursor position
+            if pressed_key == target_response and not negative_feedback:
+                cursor_position += 1
 
     def run_blocks(self):
         selected_story = self.rand.choice(stories)
