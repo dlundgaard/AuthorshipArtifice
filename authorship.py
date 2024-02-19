@@ -7,6 +7,7 @@ import os
 import random
 import datetime
 import pathlib
+import csv
 import textwrap
 import itertools
 from texts import stories
@@ -64,17 +65,18 @@ os.chdir(pathlib.Path(__file__).resolve().parent)
 
 class Experiment:
     def __init__(self):
-        # setup
+        # setting up
         self.setup_logfile()
         self.rand = random.Random()
         self.stopwatch = core.Clock()
         self.setup_window()
 
-        # scenes
+        # running through scenes
         self.landing_page()
         self.get_ready()
         self.run_blocks()
         self.show_credits()
+        self.log_results()
 
     def setup_window(self):
         self.window_size = (
@@ -117,7 +119,11 @@ class Experiment:
         self.window.flip()
         core.wait(1)
 
-        self.set_instruction_text("For each trial, type out the paragraph of text displayed as quickly as possible. Underscores (_) denote spaces.\n\nFollowing each keypress, you will get feedback indicating whether you hit the right key.\n\n\nPress SPACE to proceed")
+        self.set_instruction_text("\n\n".join([
+            "For each trial, type out the paragraph of text displayed as quickly as possible.", "Underscores (_) denote spaces.",
+            "Following each keypress, you will get feedback indicating whether you hit the right key.",
+            "Press SPACE to proceed",
+        ]))
         self.window.flip()
         pressed_key = event.waitKeys(keyList = ["space", "quit"]) # await for user to actively proceed to trials
         if pressed_key == "quit":
@@ -139,7 +145,6 @@ class Experiment:
     def set_instruction_text(self, text = ""):
         self.instructions.text = text
         self.instructions.draw()
-
 
     def update_stimulus(self, text, completed):
         wrapped_paragraph = textwrap.wrap(text, TEXT_WRAP_CHAR_COLUMNS, drop_whitespace = False)
@@ -187,8 +192,8 @@ class Experiment:
                     negative_feedback = True
             self.provide_feedback(negative = negative_feedback)
 
-            # log datapoint
-            self.log_result(datum = dict(
+            # store datapoint to be written to logfile
+            self.data_log.append(dict(
                 session = self.session,
                 story = self.selected_story,
                 block = block,
@@ -237,11 +242,13 @@ class Experiment:
                     self.session = int(last_datapoint.split(",")[0]) + 1
                 else:
                     self.session = 1
+        self.data_log = []
 
-    def log_result(self, datum):
-        assert list(datum.keys()) == self.LOGFILE_COLUMNS
+    def log_results(self):
         with open(LOGFILE_PATH, "a") as file:
-            file.write("\n" + ",".join(map(str, datum.values())))
+            for datapoint in self.data_log:
+                assert list(datapoint.keys()) == self.LOGFILE_COLUMNS
+                file.write("\n" + ",".join(map(str, datapoint.values())))
 
 if __name__ == "__main__":
     print(f"[INITIATED] {datetime.datetime.now()}")
