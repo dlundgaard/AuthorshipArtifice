@@ -54,17 +54,13 @@ LOGFILE_PATH = pathlib.Path(__file__).parent.absolute().joinpath("results.csv")
 os.chdir(pathlib.Path(__file__).resolve().parent)
 
 ### TODO
-# capital letters?
-# amount trials, length of trials
-# feedback delivery
+# amount of trials, length of trials
+# feedback delivery -> sound signal for error
 # smoothen out typing experience
-# should interventions be exclusively either 1) inserted errors or 2) corrected errors 
-# should tasks be stenographic? i.e. press a combination of keys simulataneously
-# adapt to use metric units for display sizing
-# request EEG equipment monitor resolution, dimensions
+# display sizing (physical units) -> request EEG equipment monitor resolution, dimensions
 # is this setup considered an oddball paradigm?
 # terminology (session/blocks/trials)
-# accumulate data points, write collectively post-experiment to optimize performance/timing
+# accumulate data points, write collectively post-experiment (flushing) to optimize timing
 
 class Experiment:
     def __init__(self):
@@ -163,7 +159,6 @@ class Experiment:
         else:
             self.feedback_indicator.setFillColor(COLORS.background)
         self.feedback_indicator.draw()
-        self.window.flip()
 
     def run_trials(self, block, paragraph):
         cursor_position = 0
@@ -206,7 +201,7 @@ class Experiment:
             ))
 
             # if correct key was pressed, and this was not a sham feedback instance, advance cursor position
-            if pressed_key == target_response and not negative_feedback:
+            if pressed_key == target_response or not negative_feedback:
                 cursor_position += 1
 
     def run_blocks(self):
