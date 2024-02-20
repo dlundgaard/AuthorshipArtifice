@@ -2,12 +2,20 @@
 Adaption of "Cognitive Illusions of Authorship Reveal Hierarchical Error Detection in Skilled Typists" (https://doi.org/10.1126/science.1190483) to experimental setup which incorporates EEG. 
 """
 
+"""TODO
+- amount of trials, length of trials
+- terminology (session/blocks/trials)
+- feedback delivery -> sound signal for error
+- display sizing (physical units) -> request EEG equipment monitor resolution, dimensions
+"""
+
+# expected characters typed in 10 mins: ~3000 chars (40 secs to type 200 chars)
+
 from psychopy import core, event, visual, monitors
 import os
 import random
 import datetime
 import pathlib
-import csv
 import textwrap
 import itertools
 from texts import stories
@@ -22,7 +30,7 @@ class EEG_ENCODING:
     error_rectified     = 0
     error_inserted      = 0
 
-# self.window.callOnFlip(setParallelData, 1) 
+# self.window.callOnFlip(setParallelData, 1)
 
 # display properties
 USE_FULLSCREEN_MODE = False
@@ -47,21 +55,12 @@ class COLORS:
 # experimental parameters
 ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 ADMISSIBLE_KEYS = list(ALPHABET.lower()) + ["space", "quit"]
-FALSE_ERROR_RATE = 0.005 # rate of inserting errors despite participant being correct
-RECTIFY_ERROR_RATE = 0.05 # rate of rectifying errors despite participant typing the wrong key
+FALSE_ERROR_RATE = 200 # rate of inserting errors despite participant being correct
+RECTIFY_ERROR_RATE = 20 # rate of rectifying errors despite participant typing the wrong key
 
 # setting paths
 LOGFILE_PATH = pathlib.Path(__file__).parent.absolute().joinpath("results.csv")
 os.chdir(pathlib.Path(__file__).resolve().parent)
-
-### TODO
-# amount of trials, length of trials
-# feedback delivery -> sound signal for error
-# smoothen out typing experience
-# display sizing (physical units) -> request EEG equipment monitor resolution, dimensions
-# is this setup considered an oddball paradigm?
-# terminology (session/blocks/trials)
-# accumulate data points, write collectively post-experiment (flushing) to optimize timing
 
 class Experiment:
     def __init__(self):
@@ -109,7 +108,7 @@ class Experiment:
         self.stimulus = visual.TextBox2(self.window, "", contrast = UNTYPED_CHAR_CONTRAST, borderWidth = 1, borderColor = "#FFFFFF", **text_stim_settings)
         self.stimulus_completed = visual.TextBox2(self.window, "", **text_stim_settings)
 
-        self.feedback_indicator = visual.rect.Rect(self.window, pos = (0, -0.5), size=(0.65 * 2, 0.05 * 2), units = "norm", fillColor = COLORS.background)
+        self.feedback_indicator = visual.rect.Rect(self.window, pos = (0, -0.65), size=(0.65 * 2, 0.2 * 2), units = "norm", fillColor = COLORS.background)
 
         self.window.flip()
 
@@ -120,7 +119,7 @@ class Experiment:
         core.wait(1)
 
         self.set_instruction_text("\n\n".join([
-            "For each trial, type out the paragraph of text displayed as quickly as possible.", "Underscores (_) denote spaces.",
+            "For each trial, type out the paragraph of text displayed as quickly as possible.", "Spaces are displayed as underscores (_)\nE.g. When you get to an underscore, you should press the spacebar.",
             "Following each keypress, you will get feedback indicating whether you hit the right key.",
             "Press SPACE to proceed",
         ]))
@@ -181,12 +180,12 @@ class Experiment:
             if pressed_key == "quit":
                 core.quit()
             elif pressed_key == target_response:
-                if self.rand.random() < FALSE_ERROR_RATE: # sometimes sham subject by falsely reporting that wrong key was pressed
+                if self.rand.random() < (1 / FALSE_ERROR_RATE): # sometimes sham subject by falsely reporting that wrong key was pressed
                     negative_feedback = True
                 else: # provide positive feedback for correct keypress
                     negative_feedback = False
             else:  
-                if self.rand.random() < RECTIFY_ERROR_RATE: # sometimes provide positive feedback despite incorrect keypress
+                if self.rand.random() < (1 / RECTIFY_ERROR_RATE): # sometimes provide positive feedback despite incorrect keypress
                     negative_feedback = False
                 else: # fairly provide negative feedback by indicating a wrong keypress
                     negative_feedback = True
