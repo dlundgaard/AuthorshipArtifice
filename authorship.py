@@ -4,7 +4,6 @@ Adaption of "Cognitive Illusions of Authorship Reveal Hierarchical Error Detecti
 
 """TODO
 - amount of trials, length of trials
-- terminology (session/blocks/trials)
 - feedback delivery -> sound signal for error
 - display sizing (physical units) -> request EEG equipment monitor resolution, dimensions
 """
@@ -29,8 +28,6 @@ class EEG_ENCODING:
     feedback_positive   = 0
     error_rectified     = 0
     error_inserted      = 0
-
-# self.window.callOnFlip(setParallelData, 1)
 
 # display properties
 USE_FULLSCREEN_MODE = False
@@ -194,7 +191,6 @@ class Experiment:
             # store datapoint to be written to logfile
             self.data_log.append(dict(
                 session = self.session,
-                story = self.selected_story,
                 block = block,
                 trial = cursor_position,
                 timestamp = datetime.datetime.now(),
@@ -209,13 +205,12 @@ class Experiment:
                 cursor_position += 1
 
     def run_blocks(self):
-        self.selected_story = self.rand.choice(range(len(stories)))
-        self.text = self.clean_story(stories[self.selected_story])
-        partitioned_story = textwrap.wrap(self.text, MAX_PARAGRAPH_LENGTH)
-        for block, paragraph in enumerate(partitioned_story, start = 1):
+        assert all([len(story) <= MAX_PARAGRAPH_LENGTH for story in stories])
+        for block, story in enumerate(stories, start = 1):
+            story_text = "".join([char for char in story.lower() if char in list(ALPHABET.lower()) + [" "]])
             self.run_trials(
                 block = block,
-                paragraph = paragraph,
+                paragraph = story_text,
             )
 
     def show_credits(self):
@@ -223,12 +218,9 @@ class Experiment:
         self.set_instruction_text("This concludes the experiment.")
         self.window.flip()
         core.wait(2)
-    
-    def clean_story(self, story):
-        return "".join([char for char in story.lower() if char in list(ALPHABET.lower()) + [" "]])
 
     def setup_logfile(self):
-        self.LOGFILE_COLUMNS = ["session", "story", "block", "trial", "timestamp", "response_time", "target_response", "response", "feedback"]
+        self.LOGFILE_COLUMNS = ["session", "block", "trial", "timestamp", "response_time", "target_response", "response", "feedback"]
         if not LOGFILE_PATH.is_file():
             with open(LOGFILE_PATH, "w") as file:
                 file.write(",".join(self.LOGFILE_COLUMNS))
@@ -236,6 +228,7 @@ class Experiment:
         else:
             with open(LOGFILE_PATH, "r") as file:
                 lines = file.readlines()
+                assert lines[0] == ",".join(self.LOGFILE_COLUMNS)
                 if len(lines) > 1:
                     last_datapoint = lines[-1]
                     self.session = int(last_datapoint.split(",")[0]) + 1
