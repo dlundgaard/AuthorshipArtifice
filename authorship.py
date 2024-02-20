@@ -72,7 +72,7 @@ class Experiment:
         self.get_ready()
         self.run_blocks()
         self.show_credits()
-        self.log_results()
+        self.write_logs()
 
     def setup_window(self):
         self.window_size = (
@@ -162,7 +162,9 @@ class Experiment:
         self.feedback_indicator.draw()
 
     def run_trials(self, block, paragraph):
+        trial = 1
         cursor_position = 0
+        logs = []
         while cursor_position < len(paragraph):
             self.update_stimulus(paragraph, cursor_position)
             self.stopwatch.reset()
@@ -189,10 +191,11 @@ class Experiment:
             self.provide_feedback(negative = negative_feedback)
 
             # store datapoint to be written to logfile
-            self.data_log.append(dict(
+            logs.append(dict(
                 session = self.session,
                 block = block,
-                trial = cursor_position,
+                trial = trial,
+                cursor_position = cursor_position,
                 timestamp = datetime.datetime.now(),
                 response_time = response_time,
                 target_response = target_response,
@@ -203,15 +206,21 @@ class Experiment:
             # if correct key was pressed, and this was not a sham feedback instance, advance cursor position
             if pressed_key == target_response or not negative_feedback:
                 cursor_position += 1
+            trial += 1
+
+        return logs
 
     def run_blocks(self):
         assert all([len(story) <= MAX_PARAGRAPH_LENGTH for story in stories])
         for block, story in enumerate(stories, start = 1):
             story_text = "".join([char for char in story.lower() if char in list(ALPHABET.lower()) + [" "]])
-            self.run_trials(
+            logs = self.run_trials(
                 block = block,
                 paragraph = story_text,
             )
+
+            # flush/write logs collected up to this point
+            self.write_logs(logs)
 
     def show_credits(self):
         self.set_background_color(COLORS.waiting_screen)
@@ -220,7 +229,7 @@ class Experiment:
         core.wait(2)
 
     def setup_logfile(self):
-        self.LOGFILE_COLUMNS = ["session", "block", "trial", "timestamp", "response_time", "target_response", "response", "feedback"]
+        self.LOGFILE_COLUMNS = ["session", "block", "trial", "cursor_position", "timestamp", "response_time", "target_response", "response", "feedback"]
         if not LOGFILE_PATH.is_file():
             with open(LOGFILE_PATH, "w") as file:
                 file.write(",".join(self.LOGFILE_COLUMNS))
@@ -236,9 +245,9 @@ class Experiment:
                     self.session = 1
         self.data_log = []
 
-    def log_results(self):
+    def write_logs(self, logs):
         with open(LOGFILE_PATH, "a") as file:
-            for datapoint in self.data_log:
+            for datapoint in logs:
                 assert list(datapoint.keys()) == self.LOGFILE_COLUMNS
                 file.write("\n" + ",".join(map(str, datapoint.values())))
 
