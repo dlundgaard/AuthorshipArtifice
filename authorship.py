@@ -85,6 +85,7 @@ class Experiment:
             color = COLORS.background, 
             fullscr = PRODUCTION_MODE, 
             monitor = monitors.Monitor("displayMonitor", width=30, distance=60),
+            pos = (0, 50),
             size = self.window_size,
             units = "pix",
             useRetina = True,
