@@ -10,7 +10,7 @@ Adaption of "Cognitive Illusions of Authorship Reveal Hierarchical Error Detecti
 
 # expected characters typed in 10 mins: ~3000 chars (~40 secs to type 200 chars)
 
-PRODUCTION_MODE = False
+PRODUCTION_MODE = True
 
 from psychopy import core, event, visual, monitors
 import os
@@ -33,7 +33,6 @@ class EEG_ENCODING:
     error_inserted      = 0
 
 # display properties
-FULLSCREEN_MODE = False
 WINDOW_EXTENT = 1 if PRODUCTION_MODE else 0.7
 windows_instance = ctypes.windll.user32 
 windows_instance.SetProcessDPIAware()
@@ -84,7 +83,7 @@ class Experiment:
         )
         self.window = visual.Window(
             color = COLORS.background, 
-            fullscr = FULLSCREEN_MODE, 
+            fullscr = PRODUCTION_MODE, 
             monitor = monitors.Monitor("displayMonitor", width=30, distance=60),
             size = self.window_size,
             units = "pix",
@@ -122,7 +121,7 @@ class Experiment:
 
     def landing_page(self):
         self.set_background_color(COLORS.background)
-        visual.TextStim(self.window, "EEG Typing Experiment", font = FONT_FAMILY, height = 52, wrapWidth = self.window_size[0]).draw()
+        visual.TextStim(self.window, "EEG Typing Experiment", font = FONT_FAMILY, height = 0.14, units = "norm", wrapWidth = self.window_size[0]).draw()
         self.window.flip()
         core.wait(1)
 
