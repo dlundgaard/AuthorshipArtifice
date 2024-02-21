@@ -8,7 +8,7 @@ Adaption of "Cognitive Illusions of Authorship Reveal Hierarchical Error Detecti
 - display sizing (physical units) -> request EEG equipment monitor resolution, dimensions
 """
 
-# expected characters typed in 10 mins: ~3000 chars (40 secs to type 200 chars)
+# expected characters typed in 10 mins: ~3000 chars (~40 secs to type 200 chars)
 
 from psychopy import core, event, visual, monitors
 import os
@@ -52,8 +52,8 @@ class COLORS:
 # experimental parameters
 ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 ADMISSIBLE_KEYS = list(ALPHABET.lower()) + ["space", "quit"]
-FALSE_ERROR_RATE = 200 # rate of inserting errors despite participant being correct
-RECTIFY_ERROR_RATE = 20 # rate of rectifying errors despite participant typing the wrong key
+FALSE_ERROR_ODDS = 200 # rate of inserting errors despite being correct, in odds
+RECTIFY_ERROR_ODDS = 20 # rate of rectifying errors despite pressing the wrong key, in odds
 
 # setting paths
 LOGFILE_PATH = pathlib.Path(__file__).parent.absolute().joinpath("results.csv")
@@ -69,7 +69,6 @@ class Experiment:
 
         # running through scenes
         self.landing_page()
-        self.get_ready()
         self.run_blocks()
         self.show_credits()
         self.write_logs()
@@ -92,7 +91,13 @@ class Experiment:
         self.background.draw()
         self.set_background_color(COLORS.background)
 
-        self.instructions = visual.TextStim(self.window, "", font = FONT_FAMILY, height = 28, wrapWidth = 0.9 * self.window_size[0])
+        self.instructions = visual.TextStim(
+            self.window, "", 
+            font = FONT_FAMILY, 
+            height = 0.07, 
+            units = "norm",
+            wrapWidth = 2 * 0.8
+        )
         text_stim_settings = dict(
             font = FONT_FAMILY, 
             pos = (0, 0),
@@ -116,7 +121,7 @@ class Experiment:
         core.wait(1)
 
         self.set_instruction_text("\n\n".join([
-            "For each trial, type out the paragraph of text displayed as quickly as possible.", "Spaces are displayed as underscores (_)\nE.g. When you get to an underscore, you should press the spacebar.",
+            "For each trial, type out the paragraph of text displayed as quickly as possible.", "Spaces are displayed as underscores (_)\nWhen you get to an underscore, you need to press SPACE.",
             "Following each keypress, you will get feedback indicating whether you hit the right key.",
             "Press SPACE to proceed",
         ]))
@@ -127,12 +132,6 @@ class Experiment:
 
         self.set_instruction_text()
         self.window.flip()
-
-    def get_ready(self):
-        self.set_background_color(COLORS.waiting_screen)
-        self.set_instruction_text("Get ready...")
-        self.window.flip()
-        core.wait(1)
 
     def set_background_color(self, color):
         self.background.color = color
@@ -179,12 +178,12 @@ class Experiment:
             if pressed_key == "quit":
                 core.quit()
             elif pressed_key == target_response:
-                if self.rand.random() < (1 / FALSE_ERROR_RATE): # sometimes sham subject by falsely reporting that wrong key was pressed
+                if self.rand.random() < (1 / FALSE_ERROR_ODDS): # sometimes sham subject by falsely reporting that wrong key was pressed
                     negative_feedback = True
                 else: # provide positive feedback for correct keypress
                     negative_feedback = False
             else:  
-                if self.rand.random() < (1 / RECTIFY_ERROR_RATE): # sometimes provide positive feedback despite incorrect keypress
+                if self.rand.random() < (1 / RECTIFY_ERROR_ODDS): # sometimes provide positive feedback despite incorrect keypress
                     negative_feedback = False
                 else: # fairly provide negative feedback by indicating a wrong keypress
                     negative_feedback = True
@@ -213,14 +212,19 @@ class Experiment:
     def run_blocks(self):
         assert all([len(story) <= MAX_PARAGRAPH_LENGTH for story in stories])
         for block, story in enumerate(stories, start = 1):
+            self.intermission()
             story_text = "".join([char for char in story.lower() if char in list(ALPHABET.lower()) + [" "]])
             logs = self.run_trials(
                 block = block,
                 paragraph = story_text,
             )
-
-            # flush/write logs collected up to this point
-            self.write_logs(logs)
+            self.write_logs(logs) # flush/write logs collected up to this point
+    
+    def intermission(self):
+        self.set_background_color(COLORS.waiting_screen)
+        self.set_instruction_text("A story is being prepared.\n\nGet ready...")
+        self.window.flip()
+        core.wait(4)
 
     def show_credits(self):
         self.set_background_color(COLORS.waiting_screen)
@@ -236,7 +240,7 @@ class Experiment:
             self.session = 1
         else:
             with open(LOGFILE_PATH, "r") as file:
-                lines = file.readlines()
+                lines = file.read().splitlines()
                 assert lines[0] == ",".join(self.LOGFILE_COLUMNS)
                 if len(lines) > 1:
                     last_datapoint = lines[-1]
