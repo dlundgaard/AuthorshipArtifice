@@ -153,11 +153,12 @@ class Experiment:
         self.stimulus_completed.draw()
         self.window.flip()
 
-    def provide_feedback(self, negative):
-        if negative:
-            self.feedback_indicator.setFillColor(COLORS.negative_feedback)
-        else:
-            self.feedback_indicator.setFillColor(COLORS.background)
+    def provide_feedback(self, feedback):
+        assert feedback in ("positive", "negative")
+        self.feedback_indicator.setFillColor(dict(
+            positive = COLORS.background,
+            negative = COLORS.negative_feedback,
+        )[feedback])
         self.feedback_indicator.draw()
 
     def run_trials(self, block, paragraph):
@@ -178,16 +179,22 @@ class Experiment:
             if pressed_key == "quit":
                 core.quit()
             elif pressed_key == target_response:
-                if self.rand.random() < (1 / FALSE_ERROR_ODDS): # sometimes sham subject by falsely reporting that wrong key was pressed
-                    negative_feedback = True
+                if self.rand.random() < (1 / FALSE_ERROR_ODDS): # sham subject by falsely reporting that wrong key was pressed
+                    feedback = "negative"
+                    condition = "error inserted"
                 else: # provide positive feedback for correct keypress
-                    negative_feedback = False
+                    feedback = "positive"
+                    condition = "control"
             else:  
-                if self.rand.random() < (1 / RECTIFY_ERROR_ODDS): # sometimes provide positive feedback despite incorrect keypress
-                    negative_feedback = False
+                if self.rand.random() < (1 / RECTIFY_ERROR_ODDS): # provide positive feedback despite incorrect keypress
+                    feedback = "positive"
+                    condition = "error rectified"
                 else: # fairly provide negative feedback by indicating a wrong keypress
-                    negative_feedback = True
-            self.provide_feedback(negative = negative_feedback)
+                    feedback = "negative"
+                    condition = "control"
+            
+            # decide feedback based on condition
+            self.provide_feedback(feedback)
 
             # store datapoint to be written to logfile
             logs.append(dict(
@@ -199,13 +206,15 @@ class Experiment:
                 response_time = response_time,
                 target_response = target_response,
                 response = pressed_key,
-                feedback = "negative" if negative_feedback else "positive",
+                feedback = feedback,
+                condition = condition
             ))
 
-            # if correct key was pressed, and this was not a sham feedback instance, advance cursor position
-            if pressed_key == target_response or not negative_feedback:
-                cursor_position += 1
+            # count each keypress as trial ("used attempt")
             trial += 1
+            # if correct key was pressed, and this was not a sham feedback instance, advance cursor position
+            if feedback == "positive":
+                cursor_position += 1
 
         return logs
 
@@ -224,7 +233,7 @@ class Experiment:
         self.set_background_color(COLORS.waiting_screen)
         self.set_instruction_text("A story is being prepared.\n\nGet ready...")
         self.window.flip()
-        core.wait(4)
+        core.wait(3)
 
     def show_credits(self):
         self.set_background_color(COLORS.waiting_screen)
@@ -233,7 +242,7 @@ class Experiment:
         core.wait(2)
 
     def setup_logfile(self):
-        self.LOGFILE_COLUMNS = ["session", "block", "trial", "cursor_position", "timestamp", "response_time", "target_response", "response", "feedback"]
+        self.LOGFILE_COLUMNS = ["session", "block", "trial", "cursor_position", "timestamp", "response_time", "target_response", "response", "feedback", "condition"]
         if not LOGFILE_PATH.is_file():
             with open(LOGFILE_PATH, "w") as file:
                 file.write(",".join(self.LOGFILE_COLUMNS))
