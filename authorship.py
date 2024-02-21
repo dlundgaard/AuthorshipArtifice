@@ -10,6 +10,8 @@ Adaption of "Cognitive Illusions of Authorship Reveal Hierarchical Error Detecti
 
 # expected characters typed in 10 mins: ~3000 chars (~40 secs to type 200 chars)
 
+PRODUCTION_MODE = False
+
 from psychopy import core, event, visual, monitors
 import os
 import ctypes
@@ -20,8 +22,6 @@ import textwrap
 import itertools
 from texts import stories
 # from triggers import setParallelData
-
-IN_TESTING_MODE = False
 
 # EEG encodings
 class EEG_ENCODING:
@@ -34,7 +34,7 @@ class EEG_ENCODING:
 
 # display properties
 FULLSCREEN_MODE = False
-WINDOW_EXTENT = 0.8 if IN_TESTING_MODE else 1
+WINDOW_EXTENT = 1 if PRODUCTION_MODE else 0.7
 windows_instance = ctypes.windll.user32 
 windows_instance.SetProcessDPIAware()
 DISPLAY_RESOLUTION = dict(
@@ -55,7 +55,7 @@ class COLORS:
 
 # experimental parameters
 ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-ADMISSIBLE_KEYS = list(ALPHABET.lower()) + ["space", "quit"]
+ADMISSIBLE_KEYS = list(ALPHABET.lower()) + ["space", "escape"]
 FALSE_ERROR_ODDS = 100 # rate of inserting errors despite being correct, in odds
 RECTIFY_ERROR_ODDS = 10 # rate of rectifying errors despite pressing the wrong key, in odds
 
@@ -86,10 +86,10 @@ class Experiment:
             color = COLORS.background, 
             fullscr = FULLSCREEN_MODE, 
             monitor = monitors.Monitor("displayMonitor", width=30, distance=60),
-            pos = (0, 0),
             size = self.window_size,
             units = "pix",
             useRetina = True,
+            allowGUI = True,
         )
         print(f"[DISPLAY] {self.window_size[0]:.0f} x {self.window_size[1]:.0f} px")
 
@@ -132,8 +132,8 @@ class Experiment:
             "Press SPACE to proceed",
         ]))
         self.window.flip()
-        pressed_key = event.waitKeys(keyList = ["space", "quit"]) # await for user to actively proceed to trials
-        if pressed_key == "quit":
+        pressed_key = event.waitKeys(keyList = ["space", "escape"]) # await for user to actively proceed to trials
+        if pressed_key == "escape":
             core.quit()
 
         self.set_instruction_text()
@@ -193,7 +193,7 @@ class Experiment:
 
             # decide on feedback
             target_response = "space" if paragraph[cursor_position] == " " else paragraph[cursor_position]
-            if pressed_key == "quit":
+            if pressed_key == "escape":
                 core.quit()
             elif pressed_key == target_response:
                 if self.rand.random() < (1 / FALSE_ERROR_ODDS): # sham subject by falsely reporting that wrong key was pressed
@@ -227,8 +227,8 @@ class Experiment:
                 condition = condition
             ))
 
-            if IN_TESTING_MODE:
-                (f"[KEYPRESS] {pressed_key.ljust(8)} {1000 * response_time:4.0f}ms {feedback} feedback", pressed_key)
+            if not PRODUCTION_MODE:
+                print(f"[KEYPRESS] {pressed_key.ljust(8)} {1000 * response_time:4.0f}ms {feedback} feedback", pressed_key)
 
             # count each keypress as trial ("used attempt")
             trial += 1
