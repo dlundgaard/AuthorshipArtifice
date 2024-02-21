@@ -20,6 +20,8 @@ import itertools
 from texts import stories
 # from triggers import setParallelData
 
+IN_TESTING_MODE = True
+
 # EEG encodings
 class EEG_ENCODING:
     trial               = 0
@@ -30,13 +32,13 @@ class EEG_ENCODING:
     error_inserted      = 0
 
 # display properties
-USE_FULLSCREEN_MODE = False
+FULLSCREEN_MODE = False
 DISPLAY_SCALING = 1.75
 DISPLAY_RESOLUTION = dict(
-    width = 3000, 
+    width = 3000,
     height = 2000
 )
-WINDOW_EXTENT = 0.7
+WINDOW_EXTENT = 0.8 if IN_TESTING_MODE else 1
 MAX_PARAGRAPH_LENGTH = 250
 TEXT_WRAP_CHAR_COLUMNS = 38
 FONT_FAMILY = "Consolas"
@@ -75,19 +77,21 @@ class Experiment:
 
     def setup_window(self):
         self.window_size = (
-            WINDOW_EXTENT * DISPLAY_RESOLUTION["width"] / DISPLAY_SCALING, 
-            WINDOW_EXTENT * DISPLAY_RESOLUTION["height"] / DISPLAY_SCALING
+            WINDOW_EXTENT * DISPLAY_RESOLUTION["width"] / DISPLAY_SCALING,
+            WINDOW_EXTENT * DISPLAY_RESOLUTION["height"] / DISPLAY_SCALING,
         )
         self.window = visual.Window(
             color = COLORS.background, 
-            fullscr = USE_FULLSCREEN_MODE, 
+            fullscr = FULLSCREEN_MODE, 
             monitor = monitors.Monitor("displayMonitor", width=30, distance=60),
-            units = "pix",
+            pos = (0, 0),
             size = self.window_size,
+            units = "pix",
+            useRetina = True,
         )
         print(f"[DISPLAY] {self.window_size[0]:.0f} x {self.window_size[1]:.0f} px")
 
-        self.background = visual.rect.Rect(self.window, size=self.window_size)
+        self.background = visual.rect.Rect(self.window, size=self.window_size, units = "pix")
         self.background.draw()
         self.set_background_color(COLORS.background)
 
@@ -102,10 +106,10 @@ class Experiment:
             font = FONT_FAMILY, 
             pos = (0, 0),
             size = (0.65 * 2, 0.4 * 2),
+            alignment = "top left",
             letterHeight = 0.08,
             lineSpacing = 1.2,
             units = "norm",
-            alignment = "top left",
         )
         self.stimulus = visual.TextBox2(self.window, "", contrast = UNTYPED_CHAR_CONTRAST, borderWidth = 1, borderColor = "#FFFFFF", **text_stim_settings)
         self.stimulus_completed = visual.TextBox2(self.window, "", **text_stim_settings)
@@ -132,6 +136,18 @@ class Experiment:
 
         self.set_instruction_text()
         self.window.flip()
+
+    def intermission(self):
+        self.set_background_color(COLORS.waiting_screen)
+        self.set_instruction_text("A story is being prepared.\n\nGet ready...")
+        self.window.flip()
+        core.wait(3)
+
+    def show_credits(self):
+        self.set_background_color(COLORS.waiting_screen)
+        self.set_instruction_text("This concludes the experiment.")
+        self.window.flip()
+        core.wait(2)
 
     def set_background_color(self, color):
         self.background.color = color
@@ -172,7 +188,6 @@ class Experiment:
             # take keyboard input
             pressed_key = event.waitKeys(keyList = ADMISSIBLE_KEYS)[0]
             response_time = self.stopwatch.getTime()
-            print(f"[KEYPRESS] {pressed_key.ljust(8)} {1000 * response_time:4.0f}ms", pressed_key)
 
             # decide on feedback
             target_response = "space" if paragraph[cursor_position] == " " else paragraph[cursor_position]
@@ -210,6 +225,9 @@ class Experiment:
                 condition = condition
             ))
 
+            if IN_TESTING_MODE:
+                (f"[KEYPRESS] {pressed_key.ljust(8)} {1000 * response_time:4.0f}ms {feedback} feedback", pressed_key)
+
             # count each keypress as trial ("used attempt")
             trial += 1
             # if correct key was pressed, and this was not a sham feedback instance, advance cursor position
@@ -228,18 +246,6 @@ class Experiment:
                 paragraph = story_text,
             )
             self.write_logs(logs) # flush/write logs collected up to this point
-    
-    def intermission(self):
-        self.set_background_color(COLORS.waiting_screen)
-        self.set_instruction_text("A story is being prepared.\n\nGet ready...")
-        self.window.flip()
-        core.wait(3)
-
-    def show_credits(self):
-        self.set_background_color(COLORS.waiting_screen)
-        self.set_instruction_text("This concludes the experiment.")
-        self.window.flip()
-        core.wait(2)
 
     def setup_logfile(self):
         self.LOGFILE_COLUMNS = ["session", "block", "trial", "cursor_position", "timestamp", "response_time", "target_response", "response", "feedback", "condition"]
