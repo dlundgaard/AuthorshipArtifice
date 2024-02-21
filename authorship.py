@@ -12,6 +12,7 @@ Adaption of "Cognitive Illusions of Authorship Reveal Hierarchical Error Detecti
 
 from psychopy import core, event, visual, monitors
 import os
+import ctypes
 import random
 import datetime
 import pathlib
@@ -20,7 +21,7 @@ import itertools
 from texts import stories
 # from triggers import setParallelData
 
-IN_TESTING_MODE = True
+IN_TESTING_MODE = False
 
 # EEG encodings
 class EEG_ENCODING:
@@ -33,12 +34,13 @@ class EEG_ENCODING:
 
 # display properties
 FULLSCREEN_MODE = False
-DISPLAY_SCALING = 1.75
-DISPLAY_RESOLUTION = dict(
-    width = 3000,
-    height = 2000
-)
 WINDOW_EXTENT = 0.8 if IN_TESTING_MODE else 1
+windows_instance = ctypes.windll.user32 
+windows_instance.SetProcessDPIAware()
+DISPLAY_RESOLUTION = dict(
+    width = windows_instance.GetSystemMetrics(0),
+    height = windows_instance.GetSystemMetrics(1)
+)
 MAX_PARAGRAPH_LENGTH = 250
 TEXT_WRAP_CHAR_COLUMNS = 38
 FONT_FAMILY = "Consolas"
@@ -77,8 +79,8 @@ class Experiment:
 
     def setup_window(self):
         self.window_size = (
-            WINDOW_EXTENT * DISPLAY_RESOLUTION["width"] / DISPLAY_SCALING,
-            WINDOW_EXTENT * DISPLAY_RESOLUTION["height"] / DISPLAY_SCALING,
+            WINDOW_EXTENT * DISPLAY_RESOLUTION["width"],
+            WINDOW_EXTENT * DISPLAY_RESOLUTION["height"],
         )
         self.window = visual.Window(
             color = COLORS.background, 
