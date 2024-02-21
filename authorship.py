@@ -52,8 +52,8 @@ class COLORS:
 # experimental parameters
 ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 ADMISSIBLE_KEYS = list(ALPHABET.lower()) + ["space", "quit"]
-FALSE_ERROR_ODDS = 200 # rate of inserting errors despite being correct, in odds
-RECTIFY_ERROR_ODDS = 20 # rate of rectifying errors despite pressing the wrong key, in odds
+FALSE_ERROR_ODDS = 100 # rate of inserting errors despite being correct, in odds
+RECTIFY_ERROR_ODDS = 10 # rate of rectifying errors despite pressing the wrong key, in odds
 
 # setting paths
 LOGFILE_PATH = pathlib.Path(__file__).parent.absolute().joinpath("results.csv")
