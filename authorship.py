@@ -74,7 +74,6 @@ class Experiment:
         self.landing_page()
         self.run_blocks()
         self.show_credits()
-        self.write_logs()
 
     def setup_window(self):
         self.window_size = (
