@@ -14,7 +14,7 @@ PRODUCTION_MODE = True
 
 from psychopy import core, event, visual, monitors
 import os
-import ctypes
+# import ctypes
 import random
 import datetime
 import pathlib
@@ -34,11 +34,15 @@ class EEG_ENCODING:
 
 # display properties
 WINDOW_EXTENT = 1 if PRODUCTION_MODE else 0.7
-windows_instance = ctypes.windll.user32 
-windows_instance.SetProcessDPIAware()
+# windows_instance = ctypes.windll.user32 
+# windows_instance.SetProcessDPIAware()
+# DISPLAY_RESOLUTION = dict(
+#     width = windows_instance.GetSystemMetrics(0),
+#     height = windows_instance.GetSystemMetrics(1)
+# )
 DISPLAY_RESOLUTION = dict(
-    width = windows_instance.GetSystemMetrics(0),
-    height = windows_instance.GetSystemMetrics(1)
+    width = 3000,
+    height = 2000,
 )
 MAX_PARAGRAPH_LENGTH = 250
 TEXT_WRAP_CHAR_COLUMNS = 38
