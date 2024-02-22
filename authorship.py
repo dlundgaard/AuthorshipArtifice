@@ -69,6 +69,7 @@ os.chdir(pathlib.Path(__file__).resolve().parent)
 class Experiment:
     def __init__(self):
         # setting up
+        assert all([len(story) <= MAX_PARAGRAPH_LENGTH for story in stories])
         self.setup_logfile()
         self.rand = random.Random()
         self.stopwatch = core.Clock()
@@ -242,7 +243,6 @@ class Experiment:
         return logs
 
     def run_blocks(self):
-        assert all([len(story) <= MAX_PARAGRAPH_LENGTH for story in stories])
         for block, story in enumerate(stories, start = 1):
             self.intermission()
             story_text = "".join([char for char in story.lower() if char in list(ALPHABET.lower()) + [" "]])
