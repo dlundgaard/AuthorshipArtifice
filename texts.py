@@ -2,7 +2,6 @@ stories = [
     "once upon a time in a small village a curious cat discovered a mysterious door in the forest it led to a magical world full of wonders and surprises the cat explored and made new friends they all lived happily ever after in the enchanted realm",
     "in a quiet town a young artist painted colorful dreams on old walls the art transformed the community into a vibrant masterpiece inspiring everyone to chase their passions and create a world where imagination knows no limits and joy knows no bounds",
     "once upon a time in a quiet village, there lived a young girl named lily. she had a simple life surrounded by lush green fields and gentle hills. the air was filled with a magical energy, and the stars began to twinkle in the evening sky.",
-    "in a quiet town a young artist painted colorful dreams on old walls the art transformed the community into a vibrant masterpiece inspiring everyone to chase their passions and create a world where imagination knows no limits and joy knows no bounds",
     "a lone astronaut landed on a distant planet the air was thick with mystery and strange sounds echoing through the alien landscape as the astronaut explored ancient ruins a glowing crystal revealed the planet's history unlocking a cosmic connection",
     "in a bustling city sam found an old camera at a flea market each photo captured a moment from the past sam soon realized the camera possessed time-traveling abilities exploring history sam discovered the importance of cherishing the present",
 ]
