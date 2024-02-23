@@ -1,5 +1,5 @@
 """
-Adaption of "Cognitive Illusions of Authorship Reveal Hierarchical Error Detection in Skilled Typists" (https://doi.org/10.1126/science.1190483) to experimental setup which incorporates EEG. 
+Adaption of "Cognitive Illusions of Authorship Reveal Hierarchical Error Detection in Skilled Typists" (https://doi.org/10.1126/science.1190483), adding EEG-recording to the experimental setup.
 """
 
 """
@@ -7,12 +7,12 @@ TODO
 - amount of trials, length of trials
 - feedback delivery -> sound signal for error?
 - semantic and syntactic violations/surprises may pollute EEG trace 
+- expected characters typed in 10 mins: ~3000 chars (~40 secs to type 200 chars)
 """
-
-# expected characters typed in 10 mins: ~3000 chars (~40 secs to type 200 chars)
 
 from psychopy import core, event, visual, monitors
 import os
+import sys
 import random
 import datetime
 import pathlib
@@ -21,7 +21,7 @@ import itertools
 from texts import stories
 # from triggers import setParallelData
 
-PRODUCTION_MODE = True # whether to run in borderless fullscreen, enhancing timing precision
+PRODUCTION_MODE = "debug" not in sys.argv
 
 # display properties
 WINDOW_EXTENT = 1 if PRODUCTION_MODE else 0.7
@@ -54,14 +54,18 @@ RECTIFY_ERROR_ODDS = 10 # rate of rectifying errors despite pressing the wrong k
 LOGFILE_PATH = pathlib.Path(__file__).parent.absolute().joinpath("results.csv")
 os.chdir(pathlib.Path(__file__).resolve().parent)
 
-# constants for taking user input
+# constants for user input
 ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 ADMISSIBLE_KEYS = list(ALPHABET.lower()) + ["space", "escape"]
 
+# datetime format for debugging info
+DEBUG_DATETIME_FORMAT = "%d %b %Y %H:%M:%S"
+
 class Experiment:
     def __init__(self):
+        print(f"[INITIATED] {datetime.datetime.now().strftime(DEBUG_DATETIME_FORMAT)}")
+
         # setting up
-        assert all([len(story) <= MAX_PARAGRAPH_LENGTH for story in stories])
         self.setup_logfile()
         self.rand = random.Random()
         self.stopwatch = core.Clock()
@@ -71,6 +75,8 @@ class Experiment:
         self.landing_page()
         self.run_blocks()
         self.show_credits()
+
+        print(f"[COMPLETED] {datetime.datetime.now().strftime(DEBUG_DATETIME_FORMAT)}")
 
     def setup_window(self):
         self.window_resolution = (
@@ -290,6 +296,4 @@ class Experiment:
                 file.write("\n" + ",".join(map(str, datapoint.values())))
 
 if __name__ == "__main__":
-    print(f"[INITIATED] {datetime.datetime.now()}")
     Experiment()
-    print(f"[CONCLUDED] {datetime.datetime.now()}")
