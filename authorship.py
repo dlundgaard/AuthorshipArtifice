@@ -2,19 +2,17 @@
 Adaption of "Cognitive Illusions of Authorship Reveal Hierarchical Error Detection in Skilled Typists" (https://doi.org/10.1126/science.1190483) to experimental setup which incorporates EEG. 
 """
 
-"""TODO
+"""
+TODO
 - amount of trials, length of trials
-- feedback delivery -> sound signal for error
-- display sizing (physical units) -> request EEG equipment monitor resolution, dimensions
+- feedback delivery -> sound signal for error?
+- semantic and syntactic violations/surprises may pollute EEG trace 
 """
 
 # expected characters typed in 10 mins: ~3000 chars (~40 secs to type 200 chars)
 
-PRODUCTION_MODE = True
-
 from psychopy import core, event, visual, monitors
 import os
-# import ctypes
 import random
 import datetime
 import pathlib
@@ -23,33 +21,25 @@ import itertools
 from texts import stories
 # from triggers import setParallelData
 
-# EEG encodings
-class EEG_ENCODING:
-    trial               = 0
-    keypress            = 0
-    feedback_negative   = 0
-    feedback_positive   = 0
-    error_rectified     = 0
-    error_inserted      = 0
+PRODUCTION_MODE = True # whether to run in borderless fullscreen, enhancing timing precision
 
 # display properties
 WINDOW_EXTENT = 1 if PRODUCTION_MODE else 0.7
-# windows_instance = ctypes.windll.user32 
-# windows_instance.SetProcessDPIAware()
-# DISPLAY_RESOLUTION = dict(
-#     width = windows_instance.GetSystemMetrics(0),
-#     height = windows_instance.GetSystemMetrics(1)
-# )
+DISPLAY_SCALING = 1.75
 DISPLAY_RESOLUTION = dict(
     width = 3000,
     height = 2000,
 )
-MAX_PARAGRAPH_LENGTH = 250
-TEXT_WRAP_CHAR_COLUMNS = 38
-FONT_FAMILY = "Consolas"
-
-# color specification
 UNTYPED_CHAR_CONTRAST = 0
+
+# text sizing
+FONT_FAMILY = "Consolas"
+PARAPGRAPH_WINDOW_WIDTH = 21
+TEXT_CHAR_HEIGHT = 0.48
+TEXT_CHAR_WIDTH = 1.15 * TEXT_CHAR_HEIGHT # widths of Consolas monospace characters are 115% of their height
+MAX_PARAGRAPH_LENGTH = 250
+
+# colors
 class COLORS:
     background = "#050505" # deep black
     waiting_screen = "#B1B1B1" # clean grey
@@ -57,14 +47,16 @@ class COLORS:
     negative_feedback = "#FF0000" # YouTube red
 
 # experimental parameters
-ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-ADMISSIBLE_KEYS = list(ALPHABET.lower()) + ["space", "escape"]
 FALSE_ERROR_ODDS = 100 # rate of inserting errors despite being correct, in odds
 RECTIFY_ERROR_ODDS = 10 # rate of rectifying errors despite pressing the wrong key, in odds
 
 # setting paths
 LOGFILE_PATH = pathlib.Path(__file__).parent.absolute().joinpath("results.csv")
 os.chdir(pathlib.Path(__file__).resolve().parent)
+
+# constants for taking user input
+ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+ADMISSIBLE_KEYS = list(ALPHABET.lower()) + ["space", "escape"]
 
 class Experiment:
     def __init__(self):
@@ -81,63 +73,85 @@ class Experiment:
         self.show_credits()
 
     def setup_window(self):
-        self.window_size = (
-            WINDOW_EXTENT * DISPLAY_RESOLUTION["width"],
-            WINDOW_EXTENT * DISPLAY_RESOLUTION["height"],
+        self.window_resolution = (
+            WINDOW_EXTENT * DISPLAY_RESOLUTION["width"] / DISPLAY_SCALING,
+            WINDOW_EXTENT * DISPLAY_RESOLUTION["height"] / DISPLAY_SCALING,
         )
+        monitor = monitors.Monitor(
+                "displayMonitor", 
+                width=30, 
+                distance=60
+        )
+        monitor.setSizePix(DISPLAY_RESOLUTION.values())
+
         self.window = visual.Window(
             color = COLORS.background, 
             fullscr = PRODUCTION_MODE, 
-            monitor = monitors.Monitor("displayMonitor", width=30, distance=60),
-            pos = (0, 50),
-            size = self.window_size,
-            units = "pix",
+            monitor = monitor,
             useRetina = True,
+            size = self.window_resolution,
+            units = "cm",
             allowGUI = True,
+            pos = (0, 50),
         )
-        print(f"[DISPLAY] {self.window_size[0]:.0f} x {self.window_size[1]:.0f} px")
+        print(f"[DISPLAY] {self.window_resolution[0]:.0f} x {self.window_resolution[1]:.0f} px")
 
-        self.background = visual.rect.Rect(self.window, size=self.window_size, units = "pix")
+        self.background = visual.rect.Rect(self.window, size=(2, 2), units = "norm")
         self.background.draw()
         self.set_background_color(COLORS.background)
 
         self.instructions = visual.TextStim(
             self.window, "", 
             font = FONT_FAMILY, 
-            height = 0.07, 
-            units = "norm",
-            wrapWidth = 2 * 0.8
+            height = 0.4, 
+            units = "cm",
+            wrapWidth = 21 / 2,
         )
+        text_stim_height_offset = 0.85 # offset of text box from vertical center
         text_stim_settings = dict(
             font = FONT_FAMILY, 
-            pos = (0, 0),
-            size = (0.65 * 2, 0.4 * 2),
+            pos = (0, text_stim_height_offset),
+            size = (PARAPGRAPH_WINDOW_WIDTH / 2, 4.8),
             alignment = "top left",
-            letterHeight = 0.08,
+            letterHeight = 0.45,
             lineSpacing = 1.2,
-            units = "norm",
+            units = "cm",
         )
         self.stimulus = visual.TextBox2(self.window, "", contrast = UNTYPED_CHAR_CONTRAST, borderWidth = 1, borderColor = "#FFFFFF", **text_stim_settings)
         self.stimulus_completed = visual.TextBox2(self.window, "", **text_stim_settings)
 
-        self.feedback_indicator = visual.rect.Rect(self.window, pos = (0, -0.65), size=(0.65 * 2, 0.2 * 2), units = "norm", fillColor = COLORS.background)
+        feedback_indicator_height = 2 # height of feedback indicator in cm
+        feedback_indicator_margin = 0.2 # margin/distance in cm from textbox to feedback indicator
+        self.feedback_indicator = visual.rect.Rect(
+            self.window, 
+            pos = (0, text_stim_height_offset - (text_stim_settings["size"][1] / 2 + feedback_indicator_height / 2 + feedback_indicator_margin)), 
+            size=(PARAPGRAPH_WINDOW_WIDTH / 2, 2), 
+            units = "cm", 
+            fillColor = COLORS.background
+        )
 
         self.window.flip()
 
     def landing_page(self):
         self.set_background_color(COLORS.background)
-        visual.TextStim(self.window, "EEG Typing Experiment", font = FONT_FAMILY, height = 0.14, units = "norm", wrapWidth = self.window_size[0]).draw()
+        visual.TextStim(
+            self.window, 
+            "EEG Typing Experiment\n",
+            font = FONT_FAMILY, 
+            height = 0.9, 
+            units = "cm", 
+        ).draw()
         self.window.flip()
         core.wait(1)
 
         self.set_instruction_text("\n\n".join([
-            "For each trial, type out the paragraph of text displayed as quickly as possible.", "Spaces are displayed as underscores (_)\nWhen you get to an underscore, you need to press SPACE.",
-            "Following each keypress, you will get feedback indicating whether you hit the right key.",
+            "Your task is to type out a series of paragraphs as quickly as possible.", "Spaces are displayed as underscores (_)\nWhen you get to an underscore, you need to press SPACE.",
+            "Following each keypress, you will get feedback which indicates whether you hit the correct key.",
             "Press SPACE to proceed",
         ]))
         self.window.flip()
-        pressed_key = event.waitKeys(keyList = ["space", "escape"]) # await for user to actively proceed to trials
-        if pressed_key == "escape":
+        # await user to actively proceed to trials, allow exiting before engaging
+        if event.waitKeys(keyList = ["space", "escape"]) == "escape": 
             core.quit()
 
         self.set_instruction_text()
@@ -164,7 +178,7 @@ class Experiment:
         self.instructions.draw()
 
     def update_stimulus(self, text, completed):
-        wrapped_paragraph = textwrap.wrap(text, TEXT_WRAP_CHAR_COLUMNS, drop_whitespace = False)
+        wrapped_paragraph = textwrap.wrap(text, int(PARAPGRAPH_WINDOW_WIDTH / TEXT_CHAR_WIDTH), drop_whitespace = False)
         end_lines_cursor_positions = itertools.accumulate(wrapped_paragraph, lambda acc, line: acc + len(line), initial = 0)
         newlines_before_cursor = sum([1 for val in end_lines_cursor_positions if val < completed and val > 0])
         completed_paragraph = ":".join(wrapped_paragraph)[:completed + newlines_before_cursor].split(":")
