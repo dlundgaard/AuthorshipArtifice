@@ -19,7 +19,22 @@ import pathlib
 import textwrap
 import itertools
 from texts import stories
-# from triggers import setParallelData
+try:
+    from triggers import setParallelData
+    ENABLE_EEG_MARKERS = True
+except TypeError:
+    ENABLE_EEG_MARKERS = False
+    print("[ERROR]", "No parallel port driver found")
+
+# EEG encodings
+EEG_ENCODINGS = {
+    "trial"               : 1,
+    "feedback"            : 2,
+    "correct"             : 11,
+    "incorrect"           : 12,
+    "error inserted"      : 13,
+    "error rectified"     : 14,
+}
 
 PRODUCTION_MODE = "debug" not in sys.argv
 
@@ -193,7 +208,6 @@ class Experiment:
         self.stimulus.draw()
         self.stimulus_completed.text = "\n".join(completed_paragraph).replace(" ", "_")
         self.stimulus_completed.draw()
-        self.window.flip()
 
     def provide_feedback(self, feedback):
         assert feedback in ("positive", "negative")
@@ -209,6 +223,9 @@ class Experiment:
         logs = []
         while cursor_position < len(paragraph):
             self.update_stimulus(paragraph, cursor_position)
+            self.window.flip()
+            if ENABLE_EEG_MARKERS:
+                self.window.callOnFlip(setParallelData, 0)
             self.stopwatch.reset()
 
             # take keyboard input
@@ -236,6 +253,14 @@ class Experiment:
             
             # decide feedback based on condition
             self.provide_feedback(feedback)
+
+            if ENABLE_EEG_MARKERS:
+                if condition == "control":
+                    coded_value = EEG_ENCODINGS["correct"] if pressed_key == target_response else EEG_ENCODINGS["incorrect"]
+                else:
+                    coded_value = EEG_ENCODINGS[condition]
+                print(f"[EEG] {coded_value} ({bin(coded_value)})")
+                self.window.callOnFlip(setParallelData, coded_value)
 
             # store datapoint to be written to logfile
             logs.append(dict(
