@@ -4,7 +4,7 @@ Adaptation of Logan & Crump (2010)[^1], adding EEG-recording to the experimental
 
 ## Quickstart
 1. Download/clone the repository locally.
-2. Run the created directory `cognitive-authorship-illusions` as a module (`python cognitive-authorship-illusions`).
+2. Launch the experiment by running the created directory as a module using the following command: `python cognitive-authorship-illusions` 
 
 ## Showcase
 Positive Feedback                        | Negative Feedback                        |
