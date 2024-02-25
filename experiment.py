@@ -81,6 +81,7 @@ class Experiment:
         print(f"[INITIATED] {datetime.datetime.now().strftime(DEBUG_DATETIME_FORMAT)}")
 
         # setting up
+        assert all([len(story) <= MAX_PARAGRAPH_LENGTH for story in stories])
         self.setup_logfile()
         self.rand = random.Random()
         self.stopwatch = core.Clock()
@@ -172,7 +173,8 @@ class Experiment:
         self.set_instruction_text(instructions + "\n\n\n" + "")
         self.window.flip()
 
-        core.wait(10) # force user to wait and read text and wait before proceeding
+        if PRODUCTION_MODE:
+            core.wait(10) # force user to wait and read text and wait before proceeding
 
         self.set_instruction_text(instructions + "\n\n\n" + "Press SPACE to proceed")
         self.window.flip()
