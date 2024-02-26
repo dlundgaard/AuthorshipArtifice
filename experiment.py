@@ -8,6 +8,7 @@ TODO
 - feedback delivery -> sound signal for error?
 - semantic and syntactic violations/surprises may pollute EEG trace 
 - expected characters typed in 10 mins: ~3000 chars (~40 secs to type 200 chars)
+- 5018 chars typed in 15m 43s
 """
 
 from psychopy import core, event, visual, monitors
@@ -251,7 +252,7 @@ class Experiment:
                 else: # provide positive feedback for correct keypress
                     feedback = "positive"
                     condition = "control"
-            else:  
+            else:
                 if self.rand.random() < (1 / RECTIFY_ERROR_ODDS): # provide positive feedback despite incorrect keypress
                     feedback = "positive"
                     condition = "error rectified"
@@ -267,7 +268,8 @@ class Experiment:
                     coded_value = EEG_ENCODINGS["correct"] if pressed_key == target_response else EEG_ENCODINGS["incorrect"]
                 else:
                     coded_value = EEG_ENCODINGS[condition]
-                print(f"[EEG] {coded_value} ({bin(coded_value)})")
+                if not PRODUCTION_MODE:
+                    print(f"[EEG] {coded_value} ({bin(coded_value)})")
                 self.window.callOnFlip(setParallelData, coded_value)
 
             # store datapoint to be written to logfile
@@ -299,10 +301,7 @@ class Experiment:
         for block, story in enumerate(stories, start = 1):
             self.intermission()
             story_text = "".join([char for char in story.lower() if char in list(ALPHABET.lower()) + [" "]])
-            logs = self.run_trials(
-                block = block,
-                paragraph = story_text,
-            )
+            logs = self.run_trials(block = block, paragraph = story_text)
             self.write_logs(logs) # flush/write logs collected up to this point
 
     def setup_logfile(self):
