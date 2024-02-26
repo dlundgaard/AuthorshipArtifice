@@ -18,6 +18,6 @@ stories = [
     "solar energy revolutionizes power generation by harnessing sunlight it transforms the environmental landscape with sustainable solutions and drives future technological advancements reshaping energy dynamics and benefiting societies worldwide",
     "by the sea a lonely lighthouse stood tall while waves whispered tales of lost ships until one stormy night a weary sailor found refuge guided by its beacon they shared stories and laughter the lighthouse had company and was no longer alone",
     "in the west summer months tends to bring with it optimism partly because the warmer climate opens up new opportunities for interacting with the world and partly because longer days make for feeling like we accomplish more during the day",
-    "the rain poured as marcus walked to work on a monday morning without an umbrella he was soaked when he finally arrived at work and his bos was not happy as he has a meeting later in the day where he had to look presentable and not like a drowned cat",
+    "the rain poured as marcus walked to work on a monday morning without an umbrella he was soaked when he finally arrived at work and his boss was not happy as he has a meeting later in the day where he had to look presentable and not like a drowned cat",
     "once upon a time in a quiet village there lived a young girl named lily she had a simple life surrounded by lush green fields and gentle hills the air was filled with a magical energy and the stars began to twinkle in the evening sky",
 ]
