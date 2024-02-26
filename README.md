@@ -1,4 +1,4 @@
-# Cognitive Authorship Illusions w/ EEG
+# Cognitive Authorship Illusions w/ EEG 🧠✍️⌨️
 
 Adaptation of Logan & Crump (2010)[^1], adding EEG-recording to the experimental setup with the aim of shedding further light on dissociation of two distinct monitoring systems in a typing task.
 
@@ -7,8 +7,8 @@ Adaptation of Logan & Crump (2010)[^1], adding EEG-recording to the experimental
 2. Run the directory as a module (`python cognitive-authorship-illusions`) to launch the experiment
 
 ## Showcase
-![](showcase/demo_negative_feedback.png) Negative Feedback  | ![](showcase/demo_positive_feedback.png) Positive Feedback  |
-:---------------------------------------:|:----------------------------------------:|
+![](showcase/demo_negative_feedback.png) Negative Feedback | ![](showcase/demo_positive_feedback.png) Positive Feedback |
+:---:|:---:|
 
 ## Analysis
 >![](showcase/post_manipulation_slowing.png)
