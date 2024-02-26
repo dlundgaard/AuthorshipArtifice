@@ -22,6 +22,7 @@ from texts import stories
 try:
     from triggers import setParallelData
     ENABLE_EEG_MARKERS = True
+    print("[SUCCESS]", "Connected to EEG parallel port")
 except TypeError:
     ENABLE_EEG_MARKERS = False
     print("[ERROR]", "No parallel port driver found")
