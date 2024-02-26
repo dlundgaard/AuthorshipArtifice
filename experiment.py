@@ -167,18 +167,17 @@ class Experiment:
         self.window.flip()
         core.wait(1)
 
-        instructions = "\n\n".join([
+        instructions = [
             "Your task is to type out a series of paragraphs as quickly as possible.", "Spaces are displayed as underscores (_).\nWhen you get to an underscore, press SPACE.",
-            "Following each keypress, you will get feedback indicating whether you typed that character correctly."
-        ])
-        self.set_instruction_text(instructions + "\n\n\n" + "")
-        self.window.flip()
+            "Following every keypress, you will get instant visual feedback indicating whether you typed correctly.",
+            "Press SPACE to proceed"
+        ]
+        for i in range(len(instructions)):
+            self.set_instruction_text("\n\n\n".join([line if line_num <= i else " " for line_num, line in enumerate(instructions)]))
+            self.window.flip()
+            if PRODUCTION_MODE and i < len(instructions) - 1:
+                    core.wait(3) # force user to wait and read text and wait before proceeding
 
-        if PRODUCTION_MODE:
-            core.wait(5) # force user to wait and read text and wait before proceeding
-
-        self.set_instruction_text(instructions + "\n\n\n" + "Press SPACE to proceed")
-        self.window.flip()
         # await user to actively proceed to trials, allow exiting before engaging
         if event.waitKeys(keyList = ["space", "escape"])[0] == "escape": 
             core.quit()
