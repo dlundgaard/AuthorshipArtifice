@@ -7,8 +7,6 @@ TODO
 - amount of trials, length of trials
 - feedback delivery -> sound signal for error?
 - semantic and syntactic violations/surprises may pollute EEG trace 
-- expected characters typed in 10 mins: ~3000 chars (~40 secs to type 200 chars)
-- 5018 chars typed in 15m 43s
 """
 
 from psychopy import core, event, visual, monitors
@@ -31,7 +29,7 @@ except TypeError:
 # EEG encodings
 EEG_ENCODINGS = {
     "trial"               : 1,
-    "feedback"            : 2,
+    "keypress"            : 2,
     "correct"             : 11,
     "incorrect"           : 12,
     "error inserted"      : 13,
@@ -95,6 +93,7 @@ class Experiment:
         self.show_credits()
 
         print(f"[COMPLETED] {datetime.datetime.now().strftime(DEBUG_DATETIME_FORMAT)}")
+        core.quit()
 
     def setup_window(self):
         self.window_resolution = (
@@ -176,7 +175,7 @@ class Experiment:
         self.window.flip()
 
         if PRODUCTION_MODE:
-            core.wait(10) # force user to wait and read text and wait before proceeding
+            core.wait(5) # force user to wait and read text and wait before proceeding
 
         self.set_instruction_text(instructions + "\n\n\n" + "Press SPACE to proceed")
         self.window.flip()
@@ -191,7 +190,7 @@ class Experiment:
         self.set_background_color(COLORS.waiting_screen)
         self.set_instruction_text("A story is being prepared.\n\nGet ready...")
         self.window.flip()
-        core.wait(3)
+        core.wait(4)
 
     def show_credits(self):
         self.set_background_color(COLORS.waiting_screen)
@@ -232,15 +231,19 @@ class Experiment:
         logs = []
         while cursor_position < len(paragraph):
             self.update_stimulus(paragraph, cursor_position)
-            self.window.flip()
             if ENABLE_EEG_MARKERS:
-                self.window.callOnFlip(setParallelData, 0)
+                self.window.callOnFlip(setParallelData, EEG_ENCODINGS["trial"])
+            self.window.flip()
+            
             self.stopwatch.reset()
 
             # take keyboard input
             pressed_key = event.waitKeys(keyList = ADMISSIBLE_KEYS)[0]
-            response_time = self.stopwatch.getTime()
+            if ENABLE_EEG_MARKERS:
+                setParallelData(EEG_ENCODINGS["keypress"])
 
+            response_time = self.stopwatch.getTime()
+            
             # decide on feedback
             target_response = "space" if paragraph[cursor_position] == " " else paragraph[cursor_position]
             if pressed_key == "escape":

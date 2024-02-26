@@ -8,7 +8,6 @@ except NotImplementedError:
     def setParallelData(code):
         if code > 0:
             print(f"TRIG {code} (Fake)")
-            pass
 else:
     port.setData(0)
     setParallelData = port.setData
