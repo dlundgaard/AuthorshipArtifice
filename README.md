@@ -1,4 +1,4 @@
-# Cognitive Authorship Illusions w/ EEG 🧠✍️⌨️
+# Cognitive Authorship Illusions w/ EEG
 
 Adaptation of Logan & Crump (2010)[^1], adding EEG-recording to the experimental setup with the aim of exploring dissociations of distinct cognitive monitoring systems in a typing task.
 
