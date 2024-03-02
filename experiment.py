@@ -2,13 +2,6 @@
 Adaption of "Cognitive Illusions of Authorship Reveal Hierarchical Error Detection in Skilled Typists" (https://doi.org/10.1126/science.1190483), adding EEG-recording to the experimental setup.
 """
 
-"""
-TODO
-- amount of trials, length of trials
-- feedback delivery -> sound signal for error?
-- semantic and syntactic violations/surprises may pollute EEG trace 
-"""
-
 from psychopy import core, event, visual, monitors
 import os
 import sys
@@ -66,8 +59,8 @@ FALSE_ERROR_ODDS = 100 # rate of inserting errors despite being correct, in odds
 RECTIFY_ERROR_ODDS = 10 # rate of rectifying errors despite pressing the wrong key, in odds
 
 # setting paths
-LOGFILE_PATH = pathlib.Path(__file__).parent.absolute().joinpath("results.csv")
-os.chdir(pathlib.Path(__file__).resolve().parent)
+LOGFILE_PATH = pathlib.Path(__file__).parent.joinpath("data").joinpath("behavioural").joinpath("results.csv")
+os.chdir(pathlib.Path(__file__).parent.resolve())
 
 # constants for user input
 ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
