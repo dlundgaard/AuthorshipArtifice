@@ -29,5 +29,4 @@ grid.alpha: 0.1
 legend.frameon: False
 lines.linewidth: 1.6
 font.family: "sans-serif"
-font.sans-serif: "SF Pro Display"
 font.size: 6
