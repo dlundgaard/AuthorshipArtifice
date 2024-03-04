@@ -3,78 +3,46 @@ Adaption of "Cognitive Illusions of Authorship Reveal Hierarchical Error Detecti
 """
 
 from psychopy import core, event, visual, monitors
-import os
-import sys
 import random
 import datetime
-import pathlib
 import textwrap
 import itertools
-from texts import stories
 try:
-    from triggers import setParallelData
+    from psychopy import parallel
+    port = parallel.ParallelPort(address=0xDFF8)
+    setParallelData = port.setData
     ENABLE_EEG_MARKERS = True
     print("[SUCCESS]", "Connected to EEG parallel port")
 except TypeError:
     ENABLE_EEG_MARKERS = False
     print("[ERROR]", "No parallel port driver found")
-
-# EEG encodings
-EEG_ENCODINGS = {
-    "trial"               : 1,
-    "keypress"            : 2,
-    "correct"             : 11,
-    "incorrect"           : 12,
-    "error inserted"      : 13,
-    "error rectified"     : 14,
-}
-
-PRODUCTION_MODE = "debug" not in sys.argv
-
-# display properties
-WINDOW_EXTENT = 1 if PRODUCTION_MODE else 0.7
-DISPLAY_SCALING = 1.75
-DISPLAY_RESOLUTION = dict(
-    width = 3000,
-    height = 2000,
+from texts import stories
+from constants import (
+    PRODUCTION_MODE,
+    DEBUG_DATETIME_FORMAT,
+    LOGFILE_PATH,
+    EEG_EVENT_ENCODINGS,
+    WINDOW_EXTENT,
+    DISPLAY_SCALING,
+    DISPLAY_RESOLUTION,
+    UNTYPED_CHAR_CONTRAST,
+    FONT_FAMILY,
+    PARAPGRAPH_WINDOW_WIDTH,
+    TEXT_CHAR_WIDTH,
+    MAX_PARAGRAPH_LENGTH,
+    COLORS,
+    FALSE_ERROR_ODDS,
+    RECTIFY_ERROR_ODDS,
+    ALPHABET,
+    ADMISSIBLE_KEYS
 )
-UNTYPED_CHAR_CONTRAST = 0
-
-# text sizing
-FONT_FAMILY = "Consolas"
-PARAPGRAPH_WINDOW_WIDTH = 21
-TEXT_CHAR_HEIGHT = 0.48
-TEXT_CHAR_WIDTH = 1.15 * TEXT_CHAR_HEIGHT # widths of Consolas monospace characters are 115% of their height
-MAX_PARAGRAPH_LENGTH = 250
-
-# colors
-class COLORS:
-    background = "#050505" # deep black
-    waiting_screen = "#B1B1B1" # clean grey
-    positive_feedback = "#1ED760" # Spotify green
-    negative_feedback = "#FF0000" # YouTube red
-
-# experimental parameters
-FALSE_ERROR_ODDS = 100 # rate of inserting errors despite being correct, in odds
-RECTIFY_ERROR_ODDS = 10 # rate of rectifying errors despite pressing the wrong key, in odds
-
-# setting paths
-LOGFILE_PATH = pathlib.Path(__file__).parent.joinpath("data").joinpath("behavioural").joinpath("results.csv")
-os.chdir(pathlib.Path(__file__).parent.resolve())
-
-# constants for user input
-ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-ADMISSIBLE_KEYS = list(ALPHABET.lower()) + ["space", "escape"]
-
-# datetime format for debugging info
-DEBUG_DATETIME_FORMAT = "%d %b %Y %H:%M:%S"
 
 class Experiment:
     def __init__(self):
         print(f"[INITIATED] {datetime.datetime.now().strftime(DEBUG_DATETIME_FORMAT)}")
 
         # setting up
-        assert all([len(story) <= MAX_PARAGRAPH_LENGTH for story in stories])
+        assert all([len(story) <= MAX_PARAGRAPH_LENGTH for story in stories]), f"all stories must be <= {MAX_PARAGRAPH_LENGTH}"
         self.setup_logfile()
         self.rand = random.Random()
         self.stopwatch = core.Clock()
@@ -224,7 +192,7 @@ class Experiment:
         while cursor_position < len(paragraph):
             self.update_stimulus(paragraph, cursor_position)
             if ENABLE_EEG_MARKERS:
-                self.window.callOnFlip(setParallelData, EEG_ENCODINGS["trial"])
+                self.window.callOnFlip(setParallelData, EEG_EVENT_ENCODINGS["trial"])
             self.window.flip()
             
             self.stopwatch.reset()
@@ -232,7 +200,7 @@ class Experiment:
             # take keyboard input
             pressed_key = event.waitKeys(keyList = ADMISSIBLE_KEYS)[0]
             if ENABLE_EEG_MARKERS:
-                setParallelData(EEG_ENCODINGS["keypress"])
+                setParallelData(EEG_EVENT_ENCODINGS["keypress"])
 
             response_time = self.stopwatch.getTime()
             
@@ -260,9 +228,9 @@ class Experiment:
 
             if ENABLE_EEG_MARKERS:
                 if condition == "control":
-                    coded_value = EEG_ENCODINGS["correct"] if pressed_key == target_response else EEG_ENCODINGS["incorrect"]
+                    coded_value = EEG_EVENT_ENCODINGS["correct"] if pressed_key == target_response else EEG_EVENT_ENCODINGS["incorrect"]
                 else:
-                    coded_value = EEG_ENCODINGS[condition]
+                    coded_value = EEG_EVENT_ENCODINGS[condition]
                 if not PRODUCTION_MODE:
                     print(f"[EEG] {coded_value} ({bin(coded_value)})")
                 self.window.callOnFlip(setParallelData, coded_value)
