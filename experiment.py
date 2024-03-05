@@ -235,7 +235,7 @@ class Experiment:
                     print(f"[EEG] {coded_value} ({bin(coded_value)})")
                 self.window.callOnFlip(setParallelData, coded_value)
 
-            # store datapoint to be written to logfile
+            # define datum to be written to logfile
             logs.append(dict(
                 session = self.session,
                 block = block,
