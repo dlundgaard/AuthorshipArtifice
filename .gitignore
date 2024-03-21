@@ -1,0 +1,10 @@
+/*
+!.gitignore
+!__main__.py
+!experiment.py
+!constants.py
+!texts.py
+!triggers.py
+!analysis/
+!requirements.txt
+!README.md
