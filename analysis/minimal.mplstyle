@@ -21,6 +21,7 @@ axes.labelcolor: 545454
 axes.titlesize: 11
 axes.titleweight: 600
 axes.titlelocation: "center"
+axes.xmargin: 0
 axes.ymargin: 0.05
 axes.spines.left: True
 axes.spines.bottom: True
