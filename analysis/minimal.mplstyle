@@ -1,4 +1,4 @@
-axes.prop_cycle: cycler("color", ["#0F3A63", "#FF9100", "#1DE9B6", "#7F39FB", "#F50057", "#00E5FF", "#2979FF"])
+axes.prop_cycle: cycler("color", ["#0F3A63", "#FF9100", "#7F39FB", "#1DE9B6", "#F50057", "#00E5FF", "#2979FF"])
 figure.dpi: 150
 figure.figsize: 4.5, 3.2
 figure.titlesize: 16
