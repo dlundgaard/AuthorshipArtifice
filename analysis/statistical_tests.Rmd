@@ -1,0 +1,193 @@
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(tidybayes)
+library(bayesplot)
+library(rstanarm)
+# library(cmdstanr)
+library(brms)
+library(rethinking)
+library(lmerTest)
+
+
+# loadfonts(device = "win")
+
+dual_color_scale <- c("#1A237E", "#F57C00")
+
+theme_set(
+  theme_minimal() +
+  theme(
+    plot.margin = margin(0, 0, 0, 0),
+    plot.caption.position = "plot",
+    axis.title = element_text(size = 8, color = "#555555"),
+    axis.title.x = element_text(margin = margin(t = 15, b = 5)),
+    axis.title.y = element_text(margin = margin(r = 0, l = 5), angle = 0, vjust = 0.98, hjust = 0.5),
+    panel.grid.minor = element_line(color = "#eeeeee"),
+    panel.grid.major.x = element_blank(),
+    axis.line = element_line(color="#222222", linewidth = 0.2),
+    axis.ticks = element_line(color = "#222222", linewidth = 0.2),
+    axis.ticks.length = unit(4, "pt")
+  )
+)
+
+# SESSION <- "group13_a"
+
+# data <- read_csv(str_interp("../data/behavioural/${SESSION}.csv"))
+data <- read_csv(str_interp("../data/behavioural/post_manipulation_slowing.csv")) %>% 
+  mutate(
+    session = factor(session),
+    offset = factor(offset),
+    elicited_by = factor(elicited_by, levels = c("incorrect", "correct", "error rectified", "error inserted"))
+  )
+data
+```
+
+```{r}
+# data %>% 
+#   group_by(elicited_by, offset) %>% 
+#   summarise(response_time = median(response_time)) %>% 
+# ggplot() +
+#   geom_line(aes(factor(offset), response_time, group = elicited_by, color = elicited_by))
+
+subset(data, session == "b") %>% 
+ggplot() +
+  stat_summary(aes(offset, response_time, group = elicited_by, color = elicited_by), geom="line", fun=median) +
+  coord_cartesian(ylim = c(50, 425))
+```
+
+```{r}
+fit <- stan_glmer(
+  log(response_time) ~ 1 + offset + (1 | session),
+  family = gaussian,
+  data = subset(data, elicited_by == "error rectified"),
+  chains = 2,
+  iter = 1000,
+  warmup = 500,
+  # refresh = 0
+)
+
+fit %>% summary(digits = 3)
+
+gather_draws(fit, `offset.*`, regex = TRUE) %>% 
+ggplot() +
+  stat_halfeye(aes(x = .value, y = .variable, fill = .variable == "offset1")) +
+  coord_cartesian(xlim = c(-0.5, 1.5)) +
+  scale_fill_manual(values = c("#e60049", "#2979FF"), aesthetics = c("color", "fill"), guide = "none") +
+  scale_y_discrete(labels = function(val) sprintf("%+d", as.numeric(substr(val, 7, 7)))) +
+  labs(
+    x = "Response time [log(ms)]",
+    y = "Trial offset"
+  )
+```
+
+```{r fig.width=9, fig.height=8, fig.retina=3}
+# fit <- stan_glmer(
+#   log(response_time) ~ 1 + elicited_by + elicited_by:session + (1 | session),
+#   family = gaussian(link = "log"),
+#   data = subset(data, offset == 1 & elicited_by != "error inserted"),
+#   QR = TRUE,
+#   chains = 2,
+#   iter = 1000,
+#   warmup = 500,
+#   # refresh = 0
+# )
+
+fit %>% summary(digits = 3)
+
+combinations <- expand.grid(
+  elicited_by = c("incorrect", "error rectified"),
+  session = c("a", "b", "d", "z")
+)
+
+predictions <- add_predicted_draws(
+  fit, 
+  newdata = combinations
+)
+
+ggplot(predictions) +
+  stat_halfeye(
+    aes(
+      # x = .prediction,
+      x = exp(.prediction),
+      y = session, 
+      color = stage(elicited_by, after_scale = alpha(fill, 0.8)),
+      fill = stage(elicited_by, after_scale = alpha(fill, 0.6)),
+    ),
+    .width = c(0.5),
+  ) +
+  coord_cartesian(xlim = c(0, 1000)) +
+  scale_fill_manual(
+    labels = c("Genuinely Incorrect", "Error Rectified"),
+    values = c("#ffa300", "#9b19f5"),
+    aesthetics = c("color", "fill")
+  ) +
+  labs(
+    x = "Response time [ms]",
+    y = "Session",
+    fill = "Condition",
+    color = "Condition",
+  )
+```
+
+```{r}
+session_subset <- subset(predictions, session == "a")
+contrast <- exp(subset(session_subset, elicited_by == "error rectified")$.prediction) - exp(subset(session_subset, elicited_by == "incorrect")$.prediction)
+  
+ggplot() +
+  stat_halfeye(
+    aes(
+      contrast,
+    ),
+    fill = "#0F3A63",
+    alpha = 0.8,
+    .width = c(0.9),
+  ) +
+  coord_cartesian(xlim = c(-500, 1000)) +
+  scale_x_continuous(labels = function(val) sprintf("%+d", val)) +
+  labs(
+    x = "Response time [ms]",
+    y = "PDF",
+    fill = "Condition",
+    color = "Condition",
+  ) + theme(
+    axis.ticks.y = element_blank(),
+    axis.text.y = element_blank()
+  )
+```
+
+```{r}
+interaction <- data %>% 
+  subset(offset == 1 & elicited_by != "error inserted") %>% 
+  select(response_time, elicited_by, session) %>% 
+  mutate(
+    combination = factor(paste(session, ":", elicited_by, sep = ""))
+  )
+
+lmer(
+  log(response_time) ~ 1 + combination + (1 | session),
+  data = interaction
+) %>% summary(digits = 3)
+```
+
+
+```{r}
+lmer(
+  log(response_time) ~ 1 + elicited_by + elicited_by:session + (1 | session),
+  data = subset(data, offset == 1 & elicited_by != "error inserted")
+) %>% summary(digits = 3)
+```
+
+```{r}
+lm(
+  log(response_time) ~ 1 + elicited_by,
+  data = subset(data, offset == 1 & elicited_by != "error inserted" & session == "a")
+) %>% summary(digits = 3)
+```
+
+
+
+
+
+
